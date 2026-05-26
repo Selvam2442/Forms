@@ -7,6 +7,7 @@ document.getElementById('logoutBtn').addEventListener('click', () => { localStor
 let globalTests = [];
 let globalSubmissions = [];
 let activeTest = null;
+let countdownInterval = null; // 🔥 NEW: Global timer variable
 
 async function loadDashboard() {
     const testRes = await fetch(`${BASE_URL}/api/student/tests`, { headers: { 'Authorization': `Bearer ${token}` }});
@@ -32,7 +33,6 @@ function renderDashboard() {
         let badge = sub.status === 'graded' ? '<span class="badge bg-success">Graded</span>' : '<span class="badge bg-warning text-dark">Under Review</span>';
         let reviewBtn = sub.status === 'graded' ? `<button class="btn btn-outline-primary btn-sm w-100 fw-bold mt-3" onclick="viewDetails('${sub._id}')">Review Answers</button>` : `<div class="text-center mt-3 small text-muted"><i class="fa-solid fa-lock me-1"></i>Answers locked until graded</div>`;
         
-        // 🔥 THE FIX: Hides the score number on the frontend until approved
         let scoreDisplay = sub.status === 'graded' ? sub.finalScore : '<i class="fa-solid fa-eye-slash me-2"></i>Hidden';
         
         subContainer.innerHTML += `<div class="card shadow-sm border-0 mb-3 bg-white"><div class="card-body"><div class="d-flex justify-content-between mb-2"><h6 class="fw-bold mb-0 text-dark">${sub.testId ? sub.testId.title : 'Deleted'}</h6>${badge}</div><div class="fs-5 fw-bold text-primary">Score: ${scoreDisplay}</div>${reviewBtn}</div></div>`;
@@ -66,11 +66,35 @@ window.playAudio = function(numbersString) {
     window.speechSynthesis.speak(utterance);
 };
 
+// 🔥 NEW: Timer Logic
+function startTimer(minutes) {
+    let timeRemaining = minutes * 60;
+    const display = document.getElementById('timerDisplay');
+    clearInterval(countdownInterval);
+    
+    countdownInterval = setInterval(() => {
+        const m = Math.floor(timeRemaining / 60).toString().padStart(2, '0');
+        const s = (timeRemaining % 60).toString().padStart(2, '0');
+        display.innerHTML = `<i class="fa-solid fa-clock me-1"></i>${m}:${s}`;
+        
+        if (timeRemaining <= 0) {
+            clearInterval(countdownInterval);
+            alert("Time is up! Submitting your test automatically.");
+            submitTest(true); // Forces submission without asking for confirmation
+        }
+        timeRemaining--;
+    }, 1000);
+}
+
 window.startTest = function(id) {
     activeTest = globalTests.find(t => t._id === id);
     if (!activeTest) return;
-    document.getElementById('dashboardSection').classList.add('d-none'); document.getElementById('testTakingSection').classList.remove('d-none');
+    document.getElementById('dashboardSection').classList.add('d-none'); 
+    document.getElementById('testTakingSection').classList.remove('d-none');
     document.getElementById('activeTestTitle').innerText = activeTest.title;
+
+    // Start the clock!
+    startTimer(activeTest.timeLimitMinutes);
 
     const qContainer = document.getElementById('activeTestQuestions'); qContainer.innerHTML = '';
     let shuffledQuestions = shuffleArray([...activeTest.questions]);
@@ -84,20 +108,39 @@ window.startTest = function(id) {
     });
 }
 
-window.cancelTest = function() { activeTest = null; window.speechSynthesis.cancel(); renderDashboard(); }
+window.cancelTest = function() { 
+    activeTest = null; 
+    clearInterval(countdownInterval); // Stop the clock
+    window.speechSynthesis.cancel(); 
+    renderDashboard(); 
+}
 
-window.submitTest = async function() {
+// 🔥 UPDATED: Added isAutoSubmit flag for when the timer hits zero
+window.submitTest = async function(isAutoSubmit = false) {
     const answers = {}; let allFilled = true;
+    
     activeTest.questions.forEach(q => {
         const selectedRadio = document.querySelector(`input[name="q_${q.questionId}"]:checked`);
-        if (!selectedRadio) allFilled = false; else answers[q.questionId] = selectedRadio.value;
+        if (!selectedRadio) {
+            allFilled = false;
+        } else {
+            answers[q.questionId] = selectedRadio.value;
+        }
     });
-    if (!allFilled) { alert("Please select an answer for all questions before submitting."); return; }
-    if (!confirm("Are you sure you want to submit?")) return;
+    
+    // Only block submission if the student clicked submit manually. If time is up, submit whatever they have!
+    if (!isAutoSubmit && !allFilled) { alert("Please select an answer for all questions before submitting."); return; }
+    if (!isAutoSubmit && !confirm("Are you sure you want to submit?")) return;
+
+    clearInterval(countdownInterval); // Stop the clock
 
     try {
         const res = await fetch(`${BASE_URL}/api/student/submit`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ testId: activeTest._id, answers }) });
-        if (res.ok) { alert("Submitted successfully!"); activeTest = null; loadDashboard(); }
+        if (res.ok) { 
+            if (!isAutoSubmit) alert("Submitted successfully!"); 
+            activeTest = null; 
+            loadDashboard(); 
+        }
     } catch (e) { alert("Error submitting test."); }
 }
 
@@ -110,7 +153,7 @@ window.viewDetails = function(subId) {
         const isCorr = ans.isCorrect;
         const badge = isCorr ? '<i class="fa-solid fa-circle-check text-success fs-5"></i>' : '<i class="fa-solid fa-circle-xmark text-danger fs-5"></i>';
         const rowClass = isCorr ? '' : 'table-danger';
-        tbody.innerHTML += `<tr class="${rowClass}"><td class="fw-bold text-muted">${index + 1}</td><td class="small">${ans.numbersArray ? ans.numbersArray.join(', ') : 'N/A'}</td><td class="fw-bold fs-5 text-${isCorr ? 'success' : 'danger'}">${ans.studentAnswer}</td><td class="fw-bold fs-5 text-dark">${ans.correctAnswer}</td><td>${badge}</td></tr>`;
+        tbody.innerHTML += `<tr class="${rowClass}"><td class="fw-bold text-muted">${index + 1}</td><td class="small">${ans.numbersArray ? ans.numbersArray.join(', ') : 'N/A'}</td><td class="fw-bold fs-5 text-${isCorr ? 'success' : 'danger'}">${ans.studentAnswer || '-'}</td><td class="fw-bold fs-5 text-dark">${ans.correctAnswer}</td><td>${badge}</td></tr>`;
     });
     new bootstrap.Modal(document.getElementById('reviewModal')).show();
 }

@@ -36,10 +36,15 @@
 
     <div class="container mt-4 d-none" id="testTakingSection">
         <div class="card border-0 shadow-lg rounded-4 p-4 mx-auto" style="max-width: 650px;">
+            
             <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
-                <h4 class="fw-bold text-primary mb-0" id="activeTestTitle">Test Title</h4>
+                <div>
+                    <h4 class="fw-bold text-primary mb-1" id="activeTestTitle">Test Title</h4>
+                    <div class="badge bg-danger fs-6 shadow-sm" id="timerDisplay"><i class="fa-solid fa-clock me-1"></i>00:00</div>
+                </div>
                 <button class="btn btn-outline-danger btn-sm fw-bold px-3" onclick="cancelTest()">Cancel</button>
             </div>
+
             <div id="activeTestQuestions"></div>
             <button class="btn btn-success btn-lg w-100 fw-bold mt-4 shadow" onclick="submitTest()">Submit Test</button>
         </div>
