@@ -10,154 +10,237 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        /* Ensures tabs can be scrolled side-to-side on small mobile screens */
+        .nav-tabs {
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            overflow-y: hidden;
+            white-space: nowrap;
+            -webkit-overflow-scrolling: touch;
+            border-bottom: 2px solid #dee2e6;
+        }
+
+        .nav-tabs .nav-link {
+            border: none;
+            border-bottom: 3px solid transparent;
+            color: #6c757d;
+            padding: 12px 20px;
+        }
+
+        .nav-tabs .nav-link.active {
+            border-color: #0d6efd;
+            color: #0d6efd;
+            background: transparent;
+        }
+
+        .nav-tabs::-webkit-scrollbar {
+            display: none;
+        }
+
+        /* Hide scrollbar for clean look */
+    </style>
 </head>
 
 <body class="bg-light">
 
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
-        <div class="container-fluid px-3"><span class="navbar-brand fw-bold fs-5"><i
-                    class="fa-solid fa-calculator me-2"></i>Abacus Admin</span><button
-                class="btn btn-danger btn-sm fw-bold px-3" id="logoutBtn"><i
-                    class="fa-solid fa-right-from-bracket me-2"></i>Logout</button></div>
+        <div class="container-fluid px-3">
+            <span class="navbar-brand fw-bold fs-5"><i class="fa-solid fa-calculator me-2"></i>Abacus Admin</span>
+            <button class="btn btn-danger btn-sm fw-bold px-3" id="logoutBtn"><i
+                    class="fa-solid fa-right-from-bracket me-2"></i>Logout</button>
+        </div>
     </nav>
 
-    <div class="container-fluid px-3 mt-4">
-        <div class="row mb-4">
-            <div class="col-12">
-                <div class="card shadow-sm border-0 rounded-3 p-3 bg-white">
-                    <h5 class="fw-bold mb-3 text-primary"><i class="fa-solid fa-chart-pie me-2"></i>Center Analytics
-                    </h5>
-                    <div class="row">
-                        <div class="col-md-6 mb-3"><canvas id="statusChart" style="max-height: 250px;"></canvas></div>
-                        <div class="col-md-6 mb-3"><canvas id="scoreChart" style="max-height: 250px;"></canvas></div>
-                    </div>
-                </div>
-            </div>
-        </div>
+    <div class="container-fluid px-3 mt-3">
 
-        <div class="row g-4">
-            <div class="col-12 col-xl-4">
-                <div class="card shadow-sm border-0 rounded-3 p-3 mb-4 bg-white">
-                    <h5 class="fw-bold mb-3 text-primary"><i class="fa-solid fa-user-plus me-2"></i>Enroll Student</h5>
-                    <form id="createStudentForm">
-                        <div class="mb-2"><input type="text" id="studentName" class="form-control"
-                                placeholder="Student Full Name" required></div>
-                        <div class="mb-3"><input type="text" id="studentPin" class="form-control"
-                                placeholder="Set Custom PIN (e.g. 1234)" required></div><button type="submit"
-                            class="btn btn-primary w-100 fw-bold">Enroll Student</button>
-                    </form>
-                </div>
-                <h5 class="fw-bold mb-3 text-warning text-uppercase"><i class="fa-solid fa-trophy me-2"></i>Rankings By
-                    Test</h5>
-                <div id="adminLeaderboardContainer" class="mb-4"></div>
-                <div class="card shadow-sm border-0 rounded-3 p-3 mb-4 bg-white">
-                    <h5 class="fw-bold mb-2 text-dark"><i class="fa-solid fa-users me-2"></i>Directory</h5><input
-                        type="text" id="searchStudentDir" class="form-control form-control-sm mb-2 bg-light border-0"
-                        placeholder="🔍 Search by Name or ID...">
-                    <div class="table-responsive">
-                        <table class="table table-sm align-middle mb-0">
-                            <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Name</th>
-                                    <th>PIN</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="studentTableBody"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
+        <ul class="nav nav-tabs mb-4" id="adminTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active fw-bold" id="dashboard-tab" data-bs-toggle="tab"
+                    data-bs-target="#dashboard" type="button" role="tab"><i
+                        class="fa-solid fa-chart-pie me-2"></i>Dashboard</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link fw-bold" id="students-tab" data-bs-toggle="tab" data-bs-target="#students"
+                    type="button" role="tab"><i class="fa-solid fa-users me-2"></i>Students</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link fw-bold" id="submissions-tab" data-bs-toggle="tab" data-bs-target="#submissions"
+                    type="button" role="tab"><i class="fa-solid fa-clipboard-check me-2"></i>Submissions</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link fw-bold" id="tests-tab" data-bs-toggle="tab" data-bs-target="#tests"
+                    type="button" role="tab"><i class="fa-solid fa-file-pen me-2"></i>Quiz Builder</button>
+            </li>
+        </ul>
 
-            <div class="col-12 col-xl-8">
-                <h5 class="fw-bold mb-3 text-dark"><i class="fa-solid fa-clipboard-check me-2"></i>Submission Queue</h5>
-                <div class="card shadow-sm border-0 bg-white p-2 mb-3 rounded-3">
-                    <div class="row g-2">
-                        <div class="col-md-3"><input type="text" id="filterStudentName"
-                                class="form-control form-control-sm bg-light border-0" placeholder="🔍 Find student...">
+        <div class="tab-content" id="adminTabsContent">
+
+            <div class="tab-pane fade show active" id="dashboard" role="tabpanel">
+                <div class="row g-4">
+                    <div class="col-12 col-lg-8">
+                        <div class="card shadow-sm border-0 rounded-3 p-3 bg-white h-100">
+                            <h5 class="fw-bold mb-3 text-primary"><i class="fa-solid fa-chart-pie me-2"></i>Center
+                                Analytics</h5>
+                            <div class="row">
+                                <div class="col-md-6 mb-3"><canvas id="statusChart" style="max-height: 250px;"></canvas>
+                                </div>
+                                <div class="col-md-6 mb-3"><canvas id="scoreChart" style="max-height: 250px;"></canvas>
+                                </div>
+                            </div>
                         </div>
-                        <div class="col-md-3"><select id="filterStatus"
-                                class="form-select form-select-sm bg-light border-0">
+                    </div>
+                    <div class="col-12 col-lg-4">
+                        <div class="card shadow-sm border-0 rounded-3 p-3 bg-white h-100">
+                            <h5 class="fw-bold mb-3 text-warning text-uppercase"><i
+                                    class="fa-solid fa-trophy me-2"></i>Rankings By Test</h5>
+                            <div id="adminLeaderboardContainer" class="mb-4"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-pane fade" id="students" role="tabpanel">
+                <div class="row g-4">
+                    <div class="col-12 col-md-5 col-lg-4">
+                        <div class="card shadow-sm border-0 rounded-3 p-3 bg-white">
+                            <h5 class="fw-bold mb-3 text-primary"><i class="fa-solid fa-user-plus me-2"></i>Enroll
+                                Student</h5>
+                            <form id="createStudentForm">
+                                <div class="mb-2"><input type="text" id="studentName" class="form-control"
+                                        placeholder="Student Full Name" required></div>
+                                <div class="mb-3"><input type="text" id="studentPin" class="form-control"
+                                        placeholder="Set Custom PIN (e.g. 1234)" required></div>
+                                <button type="submit" class="btn btn-primary w-100 fw-bold">Enroll Student</button>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-7 col-lg-8">
+                        <div class="card shadow-sm border-0 rounded-3 p-3 bg-white h-100">
+                            <h5 class="fw-bold mb-2 text-dark"><i class="fa-solid fa-users me-2"></i>Student Directory
+                            </h5>
+                            <input type="text" id="searchStudentDir" class="form-control mb-3 bg-light border-0"
+                                placeholder="🔍 Search by Name or ID...">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Name</th>
+                                            <th>PIN</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="studentTableBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-pane fade" id="submissions" role="tabpanel">
+                <div class="card shadow-sm border-0 bg-white p-3 mb-4 rounded-3">
+                    <div class="row g-2 align-items-center">
+                        <div class="col-12 col-md-3"><input type="text" id="filterStudentName"
+                                class="form-control bg-light border-0" placeholder="🔍 Find student..."></div>
+                        <div class="col-12 col-md-3">
+                            <select id="filterStatus" class="form-select bg-light border-0">
                                 <option value="all">All Statuses</option>
                                 <option value="pending_review">Awaiting Review</option>
                                 <option value="graded">Approved</option>
                                 <option value="retake_requested">Retake Requested</option>
-                            </select></div>
-                        <div class="col-md-3"><select id="filterTestName"
-                                class="form-select form-select-sm bg-light border-0">
+                            </select>
+                        </div>
+                        <div class="col-12 col-md-3"><select id="filterTestName" class="form-select bg-light border-0">
                                 <option value="all">All Tests</option>
                             </select></div>
-                        <div class="col-md-3"><button id="bulkApproveBtn"
-                                class="btn btn-success btn-sm w-100 h-100 fw-bold"><i
+                        <div class="col-12 col-md-3"><button id="bulkApproveBtn"
+                                class="btn btn-success w-100 fw-bold"><i
                                     class="fa-solid fa-check-double me-1"></i>Approve All</button></div>
                     </div>
                 </div>
-                <div class="row row-cols-1 row-cols-md-2 g-3 mb-4" id="submissionsContainer"></div>
+                <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3 mb-4" id="submissionsContainer"></div>
+            </div>
 
-                <div class="card shadow-sm border-0 rounded-3 p-3 mb-4 bg-white">
-                    <h5 class="fw-bold mb-3 text-primary" id="quizBuilderTitle"><i
-                            class="fa-solid fa-file-pen me-2"></i>Quiz Builder</h5>
-                    <form id="createTestForm">
-                        <input type="hidden" id="editingTestId">
-                        <div class="mb-3"><input type="text" id="testTitle"
-                                class="form-control form-control-lg border-0 border-bottom" placeholder="Untitled Test"
-                                required style="border-radius: 0;"></div>
-                        <div class="mb-3 d-flex align-items-center flex-wrap gap-2"><label
-                                class="small fw-bold text-muted"><i
-                                    class="fa-solid fa-clock me-1"></i>MINS:</label><input type="number" id="testTime"
-                                class="form-control form-control-sm" style="width: 70px;" placeholder="10"
-                                required><label class="small fw-bold text-muted ms-2"><i
-                                    class="fa-solid fa-calendar-check me-1"></i>OPEN:</label><input
-                                type="datetime-local" id="testAvailableFrom" class="form-control form-control-sm"
-                                style="width: 140px;"><label class="small fw-bold text-muted ms-2"><i
-                                    class="fa-solid fa-calendar-xmark me-1"></i>DUE:</label><input type="datetime-local"
-                                id="testDueDate" class="form-control form-control-sm" style="width: 140px;"></div>
+            <div class="tab-pane fade" id="tests" role="tabpanel">
+                <div class="row g-4">
+                    <div class="col-12 col-lg-7">
+                        <div class="card shadow-sm border-0 rounded-3 p-3 bg-white mb-4">
+                            <h5 class="fw-bold mb-3 text-primary" id="quizBuilderTitle"><i
+                                    class="fa-solid fa-file-pen me-2"></i>Quiz Builder</h5>
+                            <form id="createTestForm">
+                                <input type="hidden" id="editingTestId">
+                                <div class="mb-3"><input type="text" id="testTitle"
+                                        class="form-control form-control-lg border-0 border-bottom"
+                                        placeholder="Untitled Test" required
+                                        style="border-radius: 0; background: transparent;"></div>
 
-                        <div class="mb-3">
-                            <label class="small fw-bold text-muted mb-1"><i class="fa-solid fa-users me-1"></i>ASSIGN
-                                TO:</label>
-                            <div class="border rounded p-2 bg-light shadow-inner"
-                                style="max-height: 120px; overflow-y: auto;" id="assignToContainer">
+                                <div class="row g-2 mb-3">
+                                    <div class="col-6 col-md-4">
+                                        <label class="small fw-bold text-muted"><i
+                                                class="fa-solid fa-clock me-1"></i>MINS:</label>
+                                        <input type="number" id="testTime" class="form-control" placeholder="10"
+                                            required>
+                                    </div>
+                                    <div class="col-6 col-md-4">
+                                        <label class="small fw-bold text-muted"><i
+                                                class="fa-solid fa-calendar-check me-1"></i>OPEN:</label>
+                                        <input type="datetime-local" id="testAvailableFrom" class="form-control">
+                                    </div>
+                                    <div class="col-12 col-md-4">
+                                        <label class="small fw-bold text-muted"><i
+                                                class="fa-solid fa-calendar-xmark me-1"></i>DUE:</label>
+                                        <input type="datetime-local" id="testDueDate" class="form-control">
+                                    </div>
+                                </div>
+
+                                <div class="mb-3 border rounded p-2 bg-light shadow-inner">
+                                    <label class="small fw-bold text-muted mb-2 d-block"><i
+                                            class="fa-solid fa-users me-1"></i>ASSIGN TO:</label>
+                                    <div style="max-height: 120px; overflow-y: auto;" id="assignToContainer"></div>
+                                </div>
+
+                                <div id="questionsContainer"></div>
+
+                                <div class="d-flex flex-column flex-md-row justify-content-between mt-4 gap-2">
+                                    <button type="button" id="addQuestionBtn"
+                                        class="btn btn-outline-secondary rounded-pill px-4 fw-bold"><i
+                                            class="fa-solid fa-plus me-1"></i>Add Question</button>
+                                    <div class="d-flex gap-2">
+                                        <button type="button" id="cancelEditBtn" class="btn btn-light fw-bold d-none"
+                                            onclick="cancelEditMode()">Cancel</button>
+                                        <button type="submit" onclick="isDraftMode = true" id="btnDraft"
+                                            class="btn btn-light fw-bold border">Save Draft</button>
+                                        <button type="submit" onclick="isDraftMode = false" id="btnPublish"
+                                            class="btn btn-success fw-bold px-4">Publish Live</button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div class="col-12 col-lg-5">
+                        <div class="card shadow-sm border-0 rounded-3 p-3 bg-white h-100">
+                            <h5 class="fw-bold mb-3 text-dark"><i class="fa-solid fa-layer-group me-2"></i>Managed Tests
+                            </h5>
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Title</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="testTableBody"></tbody>
+                                </table>
                             </div>
                         </div>
-
-                        <div id="questionsContainer"></div>
-
-                        <div class="d-flex justify-content-between mt-3">
-                            <button type="button" id="addQuestionBtn"
-                                class="btn btn-outline-secondary btn-sm rounded-pill px-3"><i
-                                    class="fa-solid fa-plus me-1"></i>Add Question</button>
-                            <div>
-                                <button type="button" id="cancelEditBtn"
-                                    class="btn btn-light btn-sm fw-bold me-2 d-none" onclick="cancelEditMode()">Cancel
-                                    Edit</button>
-                                <button type="submit" onclick="isDraftMode = true" id="btnDraft"
-                                    class="btn btn-light btn-sm fw-bold me-2">Save Draft</button>
-                                <button type="submit" onclick="isDraftMode = false" id="btnPublish"
-                                    class="btn btn-success btn-sm fw-bold">Publish Live</button>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-                <div class="card shadow-sm border-0 rounded-3 p-3 mb-5 bg-white">
-                    <h5 class="fw-bold mb-2 text-dark"><i class="fa-solid fa-layer-group me-2"></i>Managed Tests</h5>
-                    <div class="table-responsive">
-                        <table class="table table-sm align-middle mb-0">
-                            <thead>
-                                <tr>
-                                    <th>Title</th>
-                                    <th>Specs</th>
-                                    <th>Target</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="testTableBody"></tbody>
-                        </table>
                     </div>
                 </div>
             </div>
+
         </div>
     </div>
 

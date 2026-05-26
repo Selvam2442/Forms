@@ -7,7 +7,9 @@ let globalStudents = [], globalManagedTests = [], globalSubmissions = [];
 let statusChartObj = null, scoreChartObj = null;
 window.visiblePendingIds = []; 
 
-// Student Management
+// ==========================================
+// STUDENT MANAGEMENT
+// ==========================================
 if (document.getElementById('createStudentForm')) {
     document.getElementById('createStudentForm').addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -18,17 +20,16 @@ if (document.getElementById('createStudentForm')) {
     });
 }
 
-// 🔥 BUILD THE ASSIGNMENT UI
 function buildAssignUI() {
     const container = document.getElementById('assignToContainer'); if (!container) return;
-    let html = `<div class="form-check border-bottom pb-1 mb-1"><input class="form-check-input" type="checkbox" value="ALL" id="cb_ALL" checked onchange="toggleAssignAll()"><label class="form-check-label fw-bold text-primary" for="cb_ALL">Everyone (All Students)</label></div>`;
-    globalStudents.forEach(s => { html += `<div class="form-check"><input class="form-check-input student-cb" type="checkbox" value="${s.rollNumber}" id="cb_${s.rollNumber}" onchange="toggleSpecificAssign()"><label class="form-check-label small" for="cb_${s.rollNumber}">[${s.rollNumber}] ${s.name}</label></div>`; });
+    let html = `<div class="form-check border-bottom pb-1 mb-2"><input class="form-check-input" type="checkbox" value="ALL" id="cb_ALL" checked onchange="toggleAssignAll()"><label class="form-check-label fw-bold text-primary" for="cb_ALL">Everyone (All Students)</label></div>`;
+    globalStudents.forEach(s => { html += `<div class="form-check mb-1"><input class="form-check-input student-cb" type="checkbox" value="${s.rollNumber}" id="cb_${s.rollNumber}" onchange="toggleSpecificAssign()"><label class="form-check-label small" for="cb_${s.rollNumber}">[${s.rollNumber}] ${s.name}</label></div>`; });
     container.innerHTML = html;
 }
 window.toggleAssignAll = function() {
     const isAll = document.getElementById('cb_ALL').checked;
     document.querySelectorAll('.student-cb').forEach(cb => cb.checked = false);
-    if (!isAll) document.getElementById('cb_ALL').checked = true; // Prevent unchecking all entirely
+    if (!isAll) document.getElementById('cb_ALL').checked = true; 
 }
 window.toggleSpecificAssign = function() {
     let anyChecked = false; document.querySelectorAll('.student-cb').forEach(cb => { if(cb.checked) anyChecked = true; });
@@ -41,14 +42,16 @@ async function loadStudents() {
 
 function renderStudentTable(data) {
     const tbody = document.getElementById('studentTableBody'); if (!tbody) return; tbody.innerHTML = '';
-    data.forEach(s => { tbody.innerHTML += `<tr><td><span class="badge bg-secondary">${s.rollNumber}</span></td><td class="small fw-bold text-dark">${s.name}</td><td class="small text-danger font-monospace">${s.pin}</td><td><button class="btn btn-xs btn-outline-primary btn-sm py-0 me-1" onclick="openEditPin('${s.rollNumber}', '${s.pin}')"><i class="fa-solid fa-pen"></i></button><button class="btn btn-xs btn-outline-danger btn-sm py-0" onclick="deleteStudent('${s.rollNumber}')"><i class="fa-solid fa-trash"></i></button></td></tr>`; });
+    data.forEach(s => { tbody.innerHTML += `<tr><td><span class="badge bg-secondary">${s.rollNumber}</span></td><td class="small fw-bold text-dark">${s.name}</td><td class="small text-danger font-monospace">${s.pin}</td><td class="text-nowrap"><button class="btn btn-outline-primary btn-sm py-0 px-2 me-1" onclick="openEditPin('${s.rollNumber}', '${s.pin}')"><i class="fa-solid fa-pen"></i></button><button class="btn btn-outline-danger btn-sm py-0 px-2" onclick="deleteStudent('${s.rollNumber}')"><i class="fa-solid fa-trash"></i></button></td></tr>`; });
 }
 if (document.getElementById('searchStudentDir')) document.getElementById('searchStudentDir').addEventListener('input', (e) => renderStudentTable(globalStudents.filter(s => s.name.toLowerCase().includes(e.target.value.toLowerCase()) || s.rollNumber.toLowerCase().includes(e.target.value.toLowerCase()))));
 window.openEditPin = function(rollNumber, currentPin) { document.getElementById('editPinRollNumber').value = rollNumber; document.getElementById('newPinInput').value = currentPin; new bootstrap.Modal(document.getElementById('editPinModal')).show(); };
 window.saveNewPin = async function() { const rollNumber = document.getElementById('editPinRollNumber').value; const newPin = document.getElementById('newPinInput').value; if (!newPin) return alert("PIN cannot be empty."); await fetch(`${BASE_URL}/api/admin/students/${rollNumber}/pin`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ pin: newPin }) }); bootstrap.Modal.getInstance(document.getElementById('editPinModal')).hide(); loadStudents(); };
 window.deleteStudent = async function(id) { if (!confirm(`Delete student record ${id}?`)) return; await fetch(`${BASE_URL}/api/admin/students/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` }}); loadStudents(); };
 
-// Export Engine
+// ==========================================
+// EXCEL EXPORT
+// ==========================================
 window.exportToExcel = function(testId, testTitle) {
     const testSubs = globalSubmissions.filter(sub => sub.testId && sub.testId._id === testId);
     if(testSubs.length === 0) return alert("No submissions found for this test yet!");
@@ -60,12 +63,14 @@ window.exportToExcel = function(testId, testTitle) {
     XLSX.writeFile(wb, `${testTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_class_results.xlsx`);
 };
 
-// Quiz Builder Logic
+// ==========================================
+// QUIZ BUILDER & TESTS
+// ==========================================
 let isDraftMode = false;
 function addQuestionCard(existingNumbers = "") {
     const container = document.getElementById('questionsContainer'); if (!container) return;
-    const card = document.createElement('div'); card.className = 'card border-0 bg-light p-3 my-2 position-relative rounded-3'; card.style.borderLeft = '4px solid #4285f4';
-    card.innerHTML = `<button type="button" class="btn btn-sm btn-link text-danger position-absolute top-0 end-0 remove-btn"><i class="fa-solid fa-trash"></i></button><div class="row g-2 mt-1"><div class="col-8"><label class="text-muted small fw-bold">Numbers Stack (Commas)</label><input type="text" class="form-control form-control-sm q-numbers" placeholder="10, -5, 2" value="${existingNumbers}" required></div><div class="col-4"><label class="text-muted small fw-bold">Preview Sum</label><input type="text" class="form-control form-control-sm q-answer text-success fw-bold bg-white" readonly></div></div>`;
+    const card = document.createElement('div'); card.className = 'card border-0 bg-light p-3 my-2 position-relative rounded-3 shadow-sm'; card.style.borderLeft = '4px solid #4285f4';
+    card.innerHTML = `<button type="button" class="btn btn-sm btn-link text-danger position-absolute top-0 end-0 remove-btn"><i class="fa-solid fa-trash"></i></button><div class="row g-2 mt-1"><div class="col-12 col-md-8"><label class="text-muted small fw-bold">Numbers Stack (Commas)</label><input type="text" class="form-control q-numbers" placeholder="10, -5, 2" value="${existingNumbers}" required></div><div class="col-12 col-md-4"><label class="text-muted small fw-bold">Preview Sum</label><input type="text" class="form-control q-answer text-success fw-bold bg-white" readonly></div></div>`;
     const numInput = card.querySelector('.q-numbers'); const ansInput = card.querySelector('.q-answer');
     numInput.addEventListener('input', (e) => { ansInput.value = e.target.value.split(',').reduce((t, v) => t + (parseInt(v.trim()) || 0), 0); });
     if(existingNumbers) ansInput.value = existingNumbers.split(',').reduce((t, v) => t + (parseInt(v.trim()) || 0), 0);
@@ -73,70 +78,57 @@ function addQuestionCard(existingNumbers = "") {
 }
 if (document.getElementById('addQuestionBtn')) { addQuestionCard(); document.getElementById('addQuestionBtn').addEventListener('click', () => addQuestionCard()); }
 
-// 🔥 CREATE & EDIT TEST SUBMIT LOGIC
 if (document.getElementById('createTestForm')) {
     document.getElementById('createTestForm').addEventListener('submit', async (e) => {
         e.preventDefault(); 
         const editId = document.getElementById('editingTestId').value;
         const title = document.getElementById('testTitle').value, timeLimit = document.getElementById('testTime').value;
+        const dateOpen = document.getElementById('testAvailableFrom').value; const dateDue = document.getElementById('testDueDate').value;
+        const availableFrom = dateOpen ? new Date(dateOpen).toISOString() : null; const dueDate = dateDue ? new Date(dateDue).toISOString() : null;
         
-        // Extract DateTime securely
-        const dateOpen = document.getElementById('testAvailableFrom').value;
-        const dateDue = document.getElementById('testDueDate').value;
-        const availableFrom = dateOpen ? new Date(dateOpen).toISOString() : null;
-        const dueDate = dateDue ? new Date(dateDue).toISOString() : null;
-        
-        // Extract Assignments
         const assignedTo = [];
-        if (!document.getElementById('cb_ALL').checked) {
-            document.querySelectorAll('.student-cb').forEach(cb => { if(cb.checked) assignedTo.push(cb.value); });
-        }
+        if (!document.getElementById('cb_ALL').checked) { document.querySelectorAll('.student-cb').forEach(cb => { if(cb.checked) assignedTo.push(cb.value); }); }
 
         const questionsArray = []; document.querySelectorAll('.q-numbers').forEach(i => { if (i.value.trim()) questionsArray.push({ numbersArray: i.value.split(',').map(n => parseInt(n.trim(), 10)) }); });
 
         try {
             let res;
             const payload = { title, timeLimitMinutes: parseInt(timeLimit), questions: questionsArray, isActive: !isDraftMode, availableFrom, dueDate, assignedTo };
-            if (editId) {
-                res = await fetch(`${BASE_URL}/api/admin/tests/${editId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify(payload) });
-            } else {
-                res = await fetch(`${BASE_URL}/api/admin/tests`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify(payload) });
-            }
+            if (editId) res = await fetch(`${BASE_URL}/api/admin/tests/${editId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify(payload) });
+            else res = await fetch(`${BASE_URL}/api/admin/tests`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify(payload) });
             if (res.ok) { alert(editId ? "Test Updated!" : "Test Created!"); window.location.reload(); }
         } catch (e) { alert("Error saving test."); }
     });
 }
 
-// 🔥 EDIT MODE TRIGGERS
+// 🔥 AUTOMATIC TAB SWITCHER FOR EDIT MODE
 window.editTest = function(id) {
+    // 1. Switch to the Tests tab automatically
+    const triggerEl = document.querySelector('#tests-tab');
+    bootstrap.Tab.getOrCreateInstance(triggerEl).show();
+
+    // 2. Load the data
     const test = globalManagedTests.find(t => t._id === id); if(!test) return;
-    
     document.getElementById('quizBuilderTitle').innerHTML = `<i class="fa-solid fa-pen-to-square me-2 text-warning"></i>Editing Test`;
     document.getElementById('editingTestId').value = test._id;
     document.getElementById('testTitle').value = test.title;
     document.getElementById('testTime').value = test.timeLimitMinutes;
     
-    // Fill Dates securely matching local timezone
     const setDate = (elId, dateStr) => { if(dateStr) { const d = new Date(dateStr); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); document.getElementById(elId).value = d.toISOString().slice(0, 16); } else { document.getElementById(elId).value = ''; } };
     setDate('testAvailableFrom', test.availableFrom); setDate('testDueDate', test.dueDate);
 
-    // Fill Checkboxes
-    if (!test.assignedTo || test.assignedTo.length === 0) {
-        document.getElementById('cb_ALL').checked = true; toggleAssignAll();
-    } else {
-        document.getElementById('cb_ALL').checked = false;
-        document.querySelectorAll('.student-cb').forEach(cb => cb.checked = test.assignedTo.includes(cb.value));
-    }
+    if (!test.assignedTo || test.assignedTo.length === 0) { document.getElementById('cb_ALL').checked = true; toggleAssignAll(); } 
+    else { document.getElementById('cb_ALL').checked = false; document.querySelectorAll('.student-cb').forEach(cb => cb.checked = test.assignedTo.includes(cb.value)); }
 
-    // Fill Questions
     const container = document.getElementById('questionsContainer'); container.innerHTML = '';
     test.questions.forEach(q => addQuestionCard(q.numbersArray.join(', ')));
 
-    // Update Buttons
     document.getElementById('cancelEditBtn').classList.remove('d-none');
     document.getElementById('btnDraft').innerText = "Update as Draft";
-    document.getElementById('btnPublish').innerText = "Update & Publish Live";
-    window.scrollTo({ top: document.getElementById('createTestForm').offsetTop - 50, behavior: 'smooth' });
+    document.getElementById('btnPublish').innerText = "Update Live";
+    
+    // 3. Scroll to the top of the form smoothly
+    window.scrollTo({ top: document.getElementById('quizBuilderTitle').offsetTop - 20, behavior: 'smooth' });
 }
 
 window.cancelEditMode = function() {
@@ -159,14 +151,22 @@ async function loadTests() {
             globalManagedTests.forEach(test => {
                 if (testFilter) testFilter.innerHTML += `<option value="${test.title}">${test.title}</option>`;
                 const badge = test.isActive ? `<span class="badge bg-success">Live</span>` : `<span class="badge bg-secondary">Draft</span>`;
-                const target = (!test.assignedTo || test.assignedTo.length === 0) ? 'Everyone' : `${test.assignedTo.length} Student(s)`;
+                const target = (!test.assignedTo || test.assignedTo.length === 0) ? 'Everyone' : `<span class="badge bg-primary rounded-pill">${test.assignedTo.length} Student(s)</span>`;
                 const safeTitleStr = test.title.replace(/'/g, "\\'");
-                if (tbody) tbody.innerHTML += `<tr><td class="small fw-bold">${test.title}</td><td class="small text-muted">${test.questions.length}Q | ${test.timeLimitMinutes}m</td><td class="small text-muted"><i class="fa-solid fa-users text-primary me-1"></i>${target}</td><td>${badge}</td><td>
-                    <button class="btn btn-xs btn-outline-success btn-sm py-0 me-1" onclick="exportToExcel('${test._id}', '${safeTitleStr}')" title="Export"><i class="fa-solid fa-file-excel"></i></button>
-                    <button class="btn btn-xs btn-outline-primary btn-sm py-0 me-1" onclick="editTest('${test._id}')" title="Edit Test"><i class="fa-solid fa-pen"></i></button>
-                    <button class="btn btn-xs btn-light btn-sm py-0 me-1" onclick="toggleTest('${test._id}')"><i class="fa-solid fa-power-off"></i></button>
-                    <button class="btn btn-xs btn-outline-danger btn-sm py-0" onclick="deleteTest('${test._id}')"><i class="fa-solid fa-trash"></i></button>
-                </td></tr>`;
+                
+                if (tbody) tbody.innerHTML += `<tr>
+                    <td class="small fw-bold">
+                        <div class="mb-1">${test.title}</div>
+                        <div class="small text-muted fw-normal">${test.questions.length}Q | ${test.timeLimitMinutes}m | ${target}</div>
+                    </td>
+                    <td>${badge}</td>
+                    <td class="text-nowrap">
+                        <button class="btn btn-outline-success btn-sm py-0 px-2 me-1" onclick="exportToExcel('${test._id}', '${safeTitleStr}')" title="Export Excel"><i class="fa-solid fa-file-excel"></i></button>
+                        <button class="btn btn-outline-primary btn-sm py-0 px-2 me-1" onclick="editTest('${test._id}')" title="Edit Test"><i class="fa-solid fa-pen"></i></button>
+                        <button class="btn btn-light btn-sm py-0 px-2 me-1 border" onclick="toggleTest('${test._id}')" title="Toggle Live/Draft"><i class="fa-solid fa-power-off"></i></button>
+                        <button class="btn btn-outline-danger btn-sm py-0 px-2" onclick="deleteTest('${test._id}')"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                </tr>`;
             });
         }
     } catch (e) {}
@@ -174,7 +174,9 @@ async function loadTests() {
 window.toggleTest = async function(id) { await fetch(`${BASE_URL}/api/admin/tests/${id}/toggle`, { method: 'PUT', headers: { 'Authorization': `Bearer ${token}` }}); loadTests(); };
 window.deleteTest = async function(id) { if (!confirm("Delete test and ALL submissions?")) return; await fetch(`${BASE_URL}/api/admin/tests/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` }}); loadTests(); renderReviewEcosystem(); };
 
-// Submission Queue & Charts
+// ==========================================
+// SUBMISSION QUEUE & CHARTS
+// ==========================================
 async function renderReviewEcosystem() {
     try {
         const res = await fetch(`${BASE_URL}/api/admin/submissions`, { headers: { 'Authorization': `Bearer ${token}` }});
@@ -204,7 +206,7 @@ function applyFilters() {
         let stat = `<span class="badge bg-success">Approved</span>`, act = `<div class="bg-light p-2 rounded small mt-2 fw-bold text-muted">Notes: ${sub.adminFeedback || ''}</div>`;
         if (sub.status === 'pending_review') { window.visiblePendingIds.push(sub._id); stat = `<span class="badge bg-warning text-dark">Awaiting</span>`; act = `<button class="btn btn-primary btn-sm w-100 fw-bold mt-2" onclick="processApproval('${sub._id}')">Approve</button>`; } else if (sub.status === 'retake_requested') { stat = `<span class="badge bg-info text-dark">Retake Req</span>`; act = `<button class="btn btn-info btn-sm w-100 text-white fw-bold mt-2" onclick="forceResetRetake('${sub._id}')">Grant Retake</button>`; }
         const timeTaken = sub.timeTakenSeconds ? `${Math.floor(sub.timeTakenSeconds / 60)}m ${sub.timeTakenSeconds % 60}s` : 'Unknown Time';
-        container.innerHTML += `<div class="col"><div class="card shadow-sm border-0 h-100 p-3 bg-white"><div class="d-flex justify-content-between mb-1"><span class="fw-bold text-dark small">${sub.studentName||"Unknown"}</span>${stat}</div><div class="small text-muted mb-1">${sub.testId ? sub.testId.title : 'Deleted Test'} <span class="ms-2 badge bg-light text-dark border"><i class="fa-solid fa-stopwatch me-1"></i>${timeTaken}</span></div><div class="fw-bold text-primary">Score: ${sub.finalScore}</div>${act}<button class="btn btn-outline-dark btn-sm w-100 mt-2 fw-bold" onclick="viewDetails('${sub._id}')"><i class="fa-solid fa-magnifying-glass me-1"></i>View Answers</button><button class="btn btn-link text-danger btn-sm w-100 mt-1" onclick="forceResetRetake('${sub._id}')" style="text-decoration:none;"><i class="fa-solid fa-eraser me-1"></i>Reset</button></div></div>`;
+        container.innerHTML += `<div class="col"><div class="card shadow-sm border-0 h-100 p-3 bg-white"><div class="d-flex justify-content-between mb-1"><span class="fw-bold text-dark small">${sub.studentName||"Unknown"}</span>${stat}</div><div class="small text-muted mb-1">${sub.testId ? sub.testId.title : 'Deleted Test'} <span class="ms-2 badge bg-light text-dark border"><i class="fa-solid fa-stopwatch me-1"></i>${timeTaken}</span></div><div class="fw-bold text-primary mb-2">Score: ${sub.finalScore}</div>${act}<div class="d-flex gap-2 mt-2"><button class="btn btn-outline-dark btn-sm w-100 fw-bold" onclick="viewDetails('${sub._id}')"><i class="fa-solid fa-magnifying-glass me-1"></i>Review</button><button class="btn btn-outline-danger btn-sm w-100 fw-bold" onclick="forceResetRetake('${sub._id}')"><i class="fa-solid fa-eraser me-1"></i>Reset</button></div></div></div>`;
     });
 }
 
@@ -226,8 +228,12 @@ function renderCharts(submissions) {
     let pending = 0, graded = 0; const scoresByTest = {};
     submissions.forEach(sub => { if (sub.status === 'pending_review' || sub.status === 'retake_requested') pending++; else graded++; const testName = sub.testId ? sub.testId.title : 'Unknown'; if (!scoresByTest[testName]) scoresByTest[testName] = { total: 0, count: 0 }; scoresByTest[testName].total += sub.finalScore; scoresByTest[testName].count += 1; });
     if(statusChartObj) statusChartObj.destroy(); if(scoreChartObj) scoreChartObj.destroy();
-    statusChartObj = new Chart(document.getElementById('statusChart'), { type: 'doughnut', data: { labels: ['Needs Review', 'Graded'], datasets: [{ data: [pending, graded], backgroundColor: ['#ffc107', '#198754'] }] } });
+    statusChartObj = new Chart(document.getElementById('statusChart'), { type: 'doughnut', data: { labels: ['Needs Review', 'Graded'], datasets: [{ data: [pending, graded], backgroundColor: ['#ffc107', '#198754'] }] }, options: { responsive: true, maintainAspectRatio: false } });
     const testLabels = Object.keys(scoresByTest); const avgScores = testLabels.map(t => scoresByTest[t].total / scoresByTest[t].count);
-    scoreChartObj = new Chart(document.getElementById('scoreChart'), { type: 'bar', data: { labels: testLabels, datasets: [{ label: 'Avg Score', data: avgScores, backgroundColor: '#0d6efd' }] } });
+    scoreChartObj = new Chart(document.getElementById('scoreChart'), { type: 'bar', data: { labels: testLabels, datasets: [{ label: 'Avg Score', data: avgScores, backgroundColor: '#0d6efd' }] }, options: { responsive: true, maintainAspectRatio: false } });
 }
+
+// 🔥 REDRAW CHARTS WHEN DASHBOARD TAB IS CLICKED
+document.getElementById('dashboard-tab').addEventListener('shown.bs.tab', function () { renderCharts(globalSubmissions); });
+
 loadStudents(); loadTests(); renderReviewEcosystem();
