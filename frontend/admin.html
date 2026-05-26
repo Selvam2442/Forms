@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,96 +8,73 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script> 
     <style>
-        /* Ensures tabs can be scrolled side-to-side on small mobile screens */
-        .nav-tabs {
-            flex-wrap: nowrap;
-            overflow-x: auto;
-            overflow-y: hidden;
-            white-space: nowrap;
-            -webkit-overflow-scrolling: touch;
-            border-bottom: 2px solid #dee2e6;
-        }
-
-        .nav-tabs .nav-link {
-            border: none;
-            border-bottom: 3px solid transparent;
-            color: #6c757d;
-            padding: 12px 20px;
-        }
-
-        .nav-tabs .nav-link.active {
-            border-color: #0d6efd;
-            color: #0d6efd;
-            background: transparent;
-        }
-
-        .nav-tabs::-webkit-scrollbar {
-            display: none;
-        }
-
-        /* Hide scrollbar for clean look */
+        .nav-tabs { flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; white-space: nowrap; -webkit-overflow-scrolling: touch; border-bottom: 2px solid #dee2e6; }
+        .nav-tabs .nav-link { border: none; border-bottom: 3px solid transparent; color: #6c757d; padding: 12px 20px; }
+        .nav-tabs .nav-link.active { border-color: #0d6efd; color: #0d6efd; background: transparent; }
+        .nav-tabs::-webkit-scrollbar { display: none; } 
     </style>
-</head>
+    
+    <script>
+        const getPreferredTheme = () => {
+            if (localStorage.getItem('theme')) return localStorage.getItem('theme');
+            return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        };
+        const setTheme = theme => document.documentElement.setAttribute('data-bs-theme', theme);
+        setTheme(getPreferredTheme());
 
+        window.toggleDarkMode = () => {
+            const current = document.documentElement.getAttribute('data-bs-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            localStorage.setItem('theme', next);
+            setTheme(next);
+        };
+    </script>
+</head>
 <body class="bg-light">
-    <div id="globalLoader" class="position-fixed w-100 h-100 flex-column align-items-center justify-content-center bg-light" style="z-index: 9999; top: 0; left: 0; transition: opacity 0.5s ease; display: flex;">
-        <div class="spinner-border text-dark mb-3" style="width: 3rem; height: 3rem;" role="status"></div>
-        <h4 class="text-dark fw-bold mb-2">Loading Center Data...</h4>
+
+    <div id="globalLoader" class="position-fixed w-100 h-100 flex-column align-items-center justify-content-center bg-body" style="z-index: 9999; top: 0; left: 0; transition: opacity 0.5s ease; display: flex;">
+        <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status"></div>
+        <h4 class="text-primary fw-bold mb-2">Loading Center Data...</h4>
         <p class="text-muted small text-center px-4">(Syncing students, tests, and analytics...)</p>
     </div>
 
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
         <div class="container-fluid px-3">
             <span class="navbar-brand fw-bold fs-5"><i class="fa-solid fa-calculator me-2"></i>Abacus Admin</span>
-            <button class="btn btn-danger btn-sm fw-bold px-3" id="logoutBtn"><i
-                    class="fa-solid fa-right-from-bracket me-2"></i>Logout</button>
+            <div>
+                <button class="btn btn-outline-light btn-sm fw-bold px-3 me-2" onclick="toggleDarkMode()" title="Toggle Dark Mode"><i class="fa-solid fa-moon"></i></button>
+                <button class="btn btn-danger btn-sm fw-bold px-3" id="logoutBtn"><i class="fa-solid fa-right-from-bracket me-2"></i>Logout</button>
+            </div>
         </div>
     </nav>
 
     <div class="container-fluid px-3 mt-3">
-
+        
         <ul class="nav nav-tabs mb-4" id="adminTabs" role="tablist">
-            <li class="nav-item" role="presentation">
-                <button class="nav-link active fw-bold" id="dashboard-tab" data-bs-toggle="tab"
-                    data-bs-target="#dashboard" type="button" role="tab"><i
-                        class="fa-solid fa-chart-pie me-2"></i>Dashboard</button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link fw-bold" id="students-tab" data-bs-toggle="tab" data-bs-target="#students"
-                    type="button" role="tab"><i class="fa-solid fa-users me-2"></i>Students</button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link fw-bold" id="submissions-tab" data-bs-toggle="tab" data-bs-target="#submissions"
-                    type="button" role="tab"><i class="fa-solid fa-clipboard-check me-2"></i>Submissions</button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link fw-bold" id="tests-tab" data-bs-toggle="tab" data-bs-target="#tests"
-                    type="button" role="tab"><i class="fa-solid fa-file-pen me-2"></i>Quiz Builder</button>
-            </li>
+            <li class="nav-item" role="presentation"><button class="nav-link active fw-bold" id="dashboard-tab" data-bs-toggle="tab" data-bs-target="#dashboard" type="button" role="tab"><i class="fa-solid fa-chart-pie me-2"></i>Dashboard</button></li>
+            <li class="nav-item" role="presentation"><button class="nav-link fw-bold" id="students-tab" data-bs-toggle="tab" data-bs-target="#students" type="button" role="tab"><i class="fa-solid fa-users me-2"></i>Students</button></li>
+            <li class="nav-item" role="presentation"><button class="nav-link fw-bold" id="submissions-tab" data-bs-toggle="tab" data-bs-target="#submissions" type="button" role="tab"><i class="fa-solid fa-clipboard-check me-2"></i>Submissions</button></li>
+            <li class="nav-item" role="presentation"><button class="nav-link fw-bold" id="tests-tab" data-bs-toggle="tab" data-bs-target="#tests" type="button" role="tab"><i class="fa-solid fa-file-pen me-2"></i>Quiz Builder</button></li>
         </ul>
 
         <div class="tab-content" id="adminTabsContent">
-
+            
             <div class="tab-pane fade show active" id="dashboard" role="tabpanel">
                 <div class="row g-4">
                     <div class="col-12 col-lg-8">
-                        <div class="card shadow-sm border-0 rounded-3 p-3 bg-white h-100">
-                            <h5 class="fw-bold mb-3 text-primary"><i class="fa-solid fa-chart-pie me-2"></i>Center
-                                Analytics</h5>
+                        <div class="card shadow-sm border-0 rounded-3 p-3 bg-body h-100">
+                            <h5 class="fw-bold mb-3 text-primary"><i class="fa-solid fa-chart-pie me-2"></i>Center Analytics</h5>
                             <div class="row">
-                                <div class="col-md-6 mb-3"><canvas id="statusChart" style="max-height: 250px;"></canvas>
-                                </div>
-                                <div class="col-md-6 mb-3"><canvas id="scoreChart" style="max-height: 250px;"></canvas>
-                                </div>
+                                <div class="col-md-6 mb-3"><canvas id="statusChart" style="max-height: 250px;"></canvas></div>
+                                <div class="col-md-6 mb-3"><canvas id="scoreChart" style="max-height: 250px;"></canvas></div>
                             </div>
                         </div>
                     </div>
                     <div class="col-12 col-lg-4">
-                        <div class="card shadow-sm border-0 rounded-3 p-3 bg-white h-100">
-                            <h5 class="fw-bold mb-3 text-warning text-uppercase"><i
-                                    class="fa-solid fa-trophy me-2"></i>Rankings By Test</h5>
+                        <div class="card shadow-sm border-0 rounded-3 p-3 bg-body h-100">
+                            <h5 class="fw-bold mb-3 text-warning text-uppercase"><i class="fa-solid fa-trophy me-2"></i>Rankings By Test</h5>
                             <div id="adminLeaderboardContainer" class="mb-4"></div>
                         </div>
                     </div>
@@ -108,34 +84,22 @@
             <div class="tab-pane fade" id="students" role="tabpanel">
                 <div class="row g-4">
                     <div class="col-12 col-md-5 col-lg-4">
-                        <div class="card shadow-sm border-0 rounded-3 p-3 bg-white">
-                            <h5 class="fw-bold mb-3 text-primary"><i class="fa-solid fa-user-plus me-2"></i>Enroll
-                                Student</h5>
+                        <div class="card shadow-sm border-0 rounded-3 p-3 bg-body">
+                            <h5 class="fw-bold mb-3 text-primary"><i class="fa-solid fa-user-plus me-2"></i>Enroll Student</h5>
                             <form id="createStudentForm">
-                                <div class="mb-2"><input type="text" id="studentName" class="form-control"
-                                        placeholder="Student Full Name" required></div>
-                                <div class="mb-3"><input type="text" id="studentPin" class="form-control"
-                                        placeholder="Set Custom PIN (e.g. 1234)" required></div>
+                                <div class="mb-2"><input type="text" id="studentName" class="form-control" placeholder="Student Full Name" required></div>
+                                <div class="mb-3"><input type="text" id="studentPin" class="form-control" placeholder="Set Custom PIN (e.g. 1234)" required></div>
                                 <button type="submit" class="btn btn-primary w-100 fw-bold">Enroll Student</button>
                             </form>
                         </div>
                     </div>
                     <div class="col-12 col-md-7 col-lg-8">
-                        <div class="card shadow-sm border-0 rounded-3 p-3 bg-white h-100">
-                            <h5 class="fw-bold mb-2 text-dark"><i class="fa-solid fa-users me-2"></i>Student Directory
-                            </h5>
-                            <input type="text" id="searchStudentDir" class="form-control mb-3 bg-light border-0"
-                                placeholder="🔍 Search by Name or ID...">
+                        <div class="card shadow-sm border-0 rounded-3 p-3 bg-body h-100">
+                            <h5 class="fw-bold mb-2"><i class="fa-solid fa-users me-2"></i>Student Directory</h5>
+                            <input type="text" id="searchStudentDir" class="form-control mb-3 bg-body-secondary border-0" placeholder="🔍 Search by Name or ID...">
                             <div class="table-responsive">
                                 <table class="table table-hover align-middle mb-0">
-                                    <thead class="table-light">
-                                        <tr>
-                                            <th>ID</th>
-                                            <th>Name</th>
-                                            <th>PIN</th>
-                                            <th>Actions</th>
-                                        </tr>
-                                    </thead>
+                                    <thead class="table-secondary"><tr><th>ID</th><th>Name</th><th>PIN</th><th>Actions</th></tr></thead>
                                     <tbody id="studentTableBody"></tbody>
                                 </table>
                             </div>
@@ -145,24 +109,19 @@
             </div>
 
             <div class="tab-pane fade" id="submissions" role="tabpanel">
-                <div class="card shadow-sm border-0 bg-white p-3 mb-4 rounded-3">
+                <div class="card shadow-sm border-0 bg-body p-3 mb-4 rounded-3">
                     <div class="row g-2 align-items-center">
-                        <div class="col-12 col-md-3"><input type="text" id="filterStudentName"
-                                class="form-control bg-light border-0" placeholder="🔍 Find student..."></div>
+                        <div class="col-12 col-md-3"><input type="text" id="filterStudentName" class="form-control bg-body-secondary border-0" placeholder="🔍 Find student..."></div>
                         <div class="col-12 col-md-3">
-                            <select id="filterStatus" class="form-select bg-light border-0">
+                            <select id="filterStatus" class="form-select bg-body-secondary border-0">
                                 <option value="all">All Statuses</option>
                                 <option value="pending_review">Awaiting Review</option>
                                 <option value="graded">Approved</option>
                                 <option value="retake_requested">Retake Requested</option>
                             </select>
                         </div>
-                        <div class="col-12 col-md-3"><select id="filterTestName" class="form-select bg-light border-0">
-                                <option value="all">All Tests</option>
-                            </select></div>
-                        <div class="col-12 col-md-3"><button id="bulkApproveBtn"
-                                class="btn btn-success w-100 fw-bold"><i
-                                    class="fa-solid fa-check-double me-1"></i>Approve All</button></div>
+                        <div class="col-12 col-md-3"><select id="filterTestName" class="form-select bg-body-secondary border-0"><option value="all">All Tests</option></select></div>
+                        <div class="col-12 col-md-3"><button id="bulkApproveBtn" class="btn btn-success w-100 fw-bold"><i class="fa-solid fa-check-double me-1"></i>Approve All</button></div>
                     </div>
                 </div>
                 <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3 mb-4" id="submissionsContainer"></div>
@@ -171,54 +130,31 @@
             <div class="tab-pane fade" id="tests" role="tabpanel">
                 <div class="row g-4">
                     <div class="col-12 col-lg-7">
-                        <div class="card shadow-sm border-0 rounded-3 p-3 bg-white mb-4">
-                            <h5 class="fw-bold mb-3 text-primary" id="quizBuilderTitle"><i
-                                    class="fa-solid fa-file-pen me-2"></i>Quiz Builder</h5>
+                        <div class="card shadow-sm border-0 rounded-3 p-3 bg-body mb-4">
+                            <h5 class="fw-bold mb-3 text-primary" id="quizBuilderTitle"><i class="fa-solid fa-file-pen me-2"></i>Quiz Builder</h5>
                             <form id="createTestForm">
-                                <input type="hidden" id="editingTestId">
-                                <div class="mb-3"><input type="text" id="testTitle"
-                                        class="form-control form-control-lg border-0 border-bottom"
-                                        placeholder="Untitled Test" required
-                                        style="border-radius: 0; background: transparent;"></div>
-
+                                <input type="hidden" id="editingTestId"> 
+                                <div class="mb-3"><input type="text" id="testTitle" class="form-control form-control-lg border-0 border-bottom" placeholder="Untitled Test" required style="border-radius: 0; background: transparent;"></div>
+                                
                                 <div class="row g-2 mb-3">
-                                    <div class="col-6 col-md-4">
-                                        <label class="small fw-bold text-muted"><i
-                                                class="fa-solid fa-clock me-1"></i>MINS:</label>
-                                        <input type="number" id="testTime" class="form-control" placeholder="10"
-                                            required>
-                                    </div>
-                                    <div class="col-6 col-md-4">
-                                        <label class="small fw-bold text-muted"><i
-                                                class="fa-solid fa-calendar-check me-1"></i>OPEN:</label>
-                                        <input type="datetime-local" id="testAvailableFrom" class="form-control">
-                                    </div>
-                                    <div class="col-12 col-md-4">
-                                        <label class="small fw-bold text-muted"><i
-                                                class="fa-solid fa-calendar-xmark me-1"></i>DUE:</label>
-                                        <input type="datetime-local" id="testDueDate" class="form-control">
-                                    </div>
+                                    <div class="col-6 col-md-4"><label class="small fw-bold text-muted"><i class="fa-solid fa-clock me-1"></i>MINS:</label><input type="number" id="testTime" class="form-control" placeholder="10" required></div>
+                                    <div class="col-6 col-md-4"><label class="small fw-bold text-muted"><i class="fa-solid fa-calendar-check me-1"></i>OPEN:</label><input type="datetime-local" id="testAvailableFrom" class="form-control"></div>
+                                    <div class="col-12 col-md-4"><label class="small fw-bold text-muted"><i class="fa-solid fa-calendar-xmark me-1"></i>DUE:</label><input type="datetime-local" id="testDueDate" class="form-control"></div>
                                 </div>
-
-                                <div class="mb-3 border rounded p-2 bg-light shadow-inner">
-                                    <label class="small fw-bold text-muted mb-2 d-block"><i
-                                            class="fa-solid fa-users me-1"></i>ASSIGN TO:</label>
+                                
+                                <div class="mb-3 border rounded p-2 bg-body-secondary shadow-inner">
+                                    <label class="small fw-bold text-muted mb-2 d-block"><i class="fa-solid fa-users me-1"></i>ASSIGN TO:</label>
                                     <div style="max-height: 120px; overflow-y: auto;" id="assignToContainer"></div>
                                 </div>
 
                                 <div id="questionsContainer"></div>
-
+                                
                                 <div class="d-flex flex-column flex-md-row justify-content-between mt-4 gap-2">
-                                    <button type="button" id="addQuestionBtn"
-                                        class="btn btn-outline-secondary rounded-pill px-4 fw-bold"><i
-                                            class="fa-solid fa-plus me-1"></i>Add Question</button>
+                                    <button type="button" id="addQuestionBtn" class="btn btn-outline-secondary rounded-pill px-4 fw-bold"><i class="fa-solid fa-plus me-1"></i>Add Question</button>
                                     <div class="d-flex gap-2">
-                                        <button type="button" id="cancelEditBtn" class="btn btn-light fw-bold d-none"
-                                            onclick="cancelEditMode()">Cancel</button>
-                                        <button type="submit" onclick="isDraftMode = true" id="btnDraft"
-                                            class="btn btn-light fw-bold border">Save Draft</button>
-                                        <button type="submit" onclick="isDraftMode = false" id="btnPublish"
-                                            class="btn btn-success fw-bold px-4">Publish Live</button>
+                                        <button type="button" id="cancelEditBtn" class="btn btn-light fw-bold d-none" onclick="cancelEditMode()">Cancel</button>
+                                        <button type="submit" onclick="isDraftMode = true" id="btnDraft" class="btn btn-light fw-bold border">Save Draft</button>
+                                        <button type="submit" onclick="isDraftMode = false" id="btnPublish" class="btn btn-success fw-bold px-4">Publish Live</button>
                                     </div>
                                 </div>
                             </form>
@@ -226,18 +162,11 @@
                     </div>
 
                     <div class="col-12 col-lg-5">
-                        <div class="card shadow-sm border-0 rounded-3 p-3 bg-white h-100">
-                            <h5 class="fw-bold mb-3 text-dark"><i class="fa-solid fa-layer-group me-2"></i>Managed Tests
-                            </h5>
+                        <div class="card shadow-sm border-0 rounded-3 p-3 bg-body h-100">
+                            <h5 class="fw-bold mb-3"><i class="fa-solid fa-layer-group me-2"></i>Managed Tests</h5>
                             <div class="table-responsive">
                                 <table class="table table-hover align-middle mb-0">
-                                    <thead class="table-light">
-                                        <tr>
-                                            <th>Title</th>
-                                            <th>Status</th>
-                                            <th>Actions</th>
-                                        </tr>
-                                    </thead>
+                                    <thead class="table-secondary"><tr><th>Title</th><th>Status</th><th>Actions</th></tr></thead>
                                     <tbody id="testTableBody"></tbody>
                                 </table>
                             </div>
@@ -246,54 +175,13 @@
                 </div>
             </div>
 
-        </div>
+        </div> 
     </div>
 
-    <div class="modal fade" id="reviewModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content border-0 shadow">
-                <div class="modal-header bg-dark text-white border-0">
-                    <h5 class="modal-title fw-bold">Answer Breakdown</h5><button type="button"
-                        class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body bg-light">
-                    <h4 id="reviewStudentName" class="text-primary fw-bold mb-0"></h4>
-                    <p class="text-muted small mb-3 fw-bold" id="reviewTestName"></p>
-                    <div class="table-responsive bg-white rounded-3 p-2 shadow-sm">
-                        <table class="table table-borderless table-hover align-middle text-center mb-0">
-                            <thead class="border-bottom">
-                                <tr class="text-muted small text-uppercase">
-                                    <th>#</th>
-                                    <th>Stack</th>
-                                    <th>Student</th>
-                                    <th>Correct</th>
-                                    <th>Result</th>
-                                </tr>
-                            </thead>
-                            <tbody id="reviewTableBody"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="modal fade" id="editPinModal" tabindex="-1">
-        <div class="modal-dialog modal-sm">
-            <div class="modal-content border-0 shadow">
-                <div class="modal-header bg-primary text-white border-0">
-                    <h5 class="modal-title fw-bold">Edit Student PIN</h5><button type="button"
-                        class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body bg-light"><input type="hidden" id="editPinRollNumber"><label
-                        class="small text-muted fw-bold mb-1">New PIN Number:</label><input type="text" id="newPinInput"
-                        class="form-control mb-3" placeholder="Enter new PIN"><button
-                        class="btn btn-primary w-100 fw-bold" onclick="saveNewPin()">Save PIN</button></div>
-            </div>
-        </div>
-    </div>
+    <div class="modal fade" id="reviewModal" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content border-0 shadow"><div class="modal-header bg-dark text-white border-0"><h5 class="modal-title fw-bold">Answer Breakdown</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body bg-body"><h4 id="reviewStudentName" class="text-primary fw-bold mb-0"></h4><p class="text-muted small mb-3 fw-bold" id="reviewTestName"></p><div class="table-responsive bg-body rounded-3 p-2 shadow-sm"><table class="table table-borderless table-hover align-middle text-center mb-0"><thead class="border-bottom"><tr class="text-muted small text-uppercase"><th>#</th><th>Stack</th><th>Student</th><th>Correct</th><th>Result</th></tr></thead><tbody id="reviewTableBody"></tbody></table></div></div></div></div></div>
+    <div class="modal fade" id="editPinModal" tabindex="-1"><div class="modal-dialog modal-sm"><div class="modal-content border-0 shadow"><div class="modal-header bg-primary text-white border-0"><h5 class="modal-title fw-bold">Edit Student PIN</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body bg-body"><input type="hidden" id="editPinRollNumber"><label class="small text-muted fw-bold mb-1">New PIN Number:</label><input type="text" id="newPinInput" class="form-control mb-3" placeholder="Enter new PIN"><button class="btn btn-primary w-100 fw-bold" onclick="saveNewPin()">Save PIN</button></div></div></div></div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="admin.js"></script>
 </body>
-
 </html>

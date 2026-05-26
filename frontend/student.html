@@ -27,10 +27,29 @@
             line-height: 2.2;
         }
     </style>
+
+    <script>
+        const getPreferredTheme = () => {
+            if (localStorage.getItem('theme')) return localStorage.getItem('theme');
+            return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        };
+        const setTheme = theme => document.documentElement.setAttribute('data-bs-theme', theme);
+        setTheme(getPreferredTheme());
+
+        window.toggleDarkMode = () => {
+            const current = document.documentElement.getAttribute('data-bs-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            localStorage.setItem('theme', next);
+            setTheme(next);
+        };
+    </script>
 </head>
 
 <body class="bg-light">
-    <div id="globalLoader" class="position-fixed w-100 h-100 flex-column align-items-center justify-content-center bg-light" style="z-index: 9999; top: 0; left: 0; transition: opacity 0.5s ease; display: flex;">
+
+    <div id="globalLoader"
+        class="position-fixed w-100 h-100 flex-column align-items-center justify-content-center bg-body"
+        style="z-index: 9999; top: 0; left: 0; transition: opacity 0.5s ease; display: flex;">
         <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status"></div>
         <h4 class="text-primary fw-bold mb-2">Loading Your Portal...</h4>
         <p class="text-muted small text-center px-4">(Connecting to database...)</p>
@@ -44,10 +63,13 @@
                 <span class="badge bg-warning text-dark me-3 fs-6 rounded-pill shadow-sm" id="streakDisplay"
                     style="display:none;"><i class="fa-solid fa-fire text-danger"></i> <span id="streakCount">0</span>
                     Day Streak</span>
-                <span class="text-white me-3 fw-bold" id="studentGreeting"><i
+                <span class="text-white me-3 fw-bold d-none d-sm-inline" id="studentGreeting"><i
                         class="fa-solid fa-user me-1"></i>Welcome</span>
+                <button class="btn btn-outline-light btn-sm fw-bold px-3 me-2" onclick="toggleDarkMode()"
+                    title="Toggle Dark Mode"><i class="fa-solid fa-moon"></i></button>
                 <button class="btn btn-light btn-sm fw-bold px-3 text-primary" id="logoutBtn"><i
-                        class="fa-solid fa-power-off me-2"></i>Logout</button>
+                        class="fa-solid fa-power-off d-sm-none"></i><span class="d-none d-sm-inline"><i
+                            class="fa-solid fa-right-from-bracket me-2"></i>Logout</span></button>
             </div>
         </div>
     </nav>
@@ -55,24 +77,25 @@
     <div class="container mt-4" id="dashboardSection">
         <div class="row g-4">
             <div class="col-md-6">
-                <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-file-signature me-2"></i>Available Tests</h5>
+                <h5 class="fw-bold mb-3"><i class="fa-solid fa-file-signature me-2"></i>Available Tests</h5>
                 <div id="availableTestsContainer"></div>
             </div>
             <div class="col-md-6">
-                <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-award me-2"></i>My Results</h5>
+                <h5 class="fw-bold mb-3"><i class="fa-solid fa-award me-2"></i>My Results</h5>
                 <div id="myResultsContainer"></div>
             </div>
         </div>
     </div>
 
     <div class="container mt-4 d-none" id="testTakingSection">
-        <div class="card border-0 shadow-lg rounded-4 p-4 mx-auto" style="max-width: 650px;">
+        <div class="card border-0 shadow-lg rounded-4 p-4 mx-auto bg-body" style="max-width: 650px;">
             <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
                 <div>
                     <h4 class="fw-bold text-primary mb-1" id="activeTestTitle">Test Title</h4>
                     <div class="badge bg-danger fs-6 shadow-sm" id="timerDisplay"><i
                             class="fa-solid fa-clock me-1"></i>00:00</div>
-                </div><button class="btn btn-outline-danger btn-sm fw-bold px-3" onclick="cancelTest()">Cancel</button>
+                </div>
+                <button class="btn btn-outline-danger btn-sm fw-bold px-3" onclick="cancelTest()">Cancel</button>
             </div>
             <div id="activeTestQuestions"></div>
             <button class="btn btn-success btn-lg w-100 fw-bold mt-4 shadow" onclick="submitTest()">Submit Test</button>
@@ -86,9 +109,9 @@
                     <h5 class="modal-title fw-bold">Performance Review</h5><button type="button"
                         class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body bg-light">
-                    <h4 id="reviewTestName" class="text-dark fw-bold mb-3"></h4>
-                    <div class="table-responsive bg-white rounded-3 p-2 shadow-sm">
+                <div class="modal-body bg-body">
+                    <h4 id="reviewTestName" class="fw-bold mb-3"></h4>
+                    <div class="table-responsive bg-body rounded-3 p-2 shadow-sm">
                         <table class="table table-borderless table-hover align-middle text-center mb-0">
                             <thead class="border-bottom">
                                 <tr class="text-muted small text-uppercase">
