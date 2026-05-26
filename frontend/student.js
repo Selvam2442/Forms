@@ -7,7 +7,8 @@ document.getElementById('logoutBtn').addEventListener('click', () => { localStor
 let globalTests = [];
 let globalSubmissions = [];
 let activeTest = null;
-let countdownInterval = null; // 🔥 NEW: Global timer variable
+let countdownInterval = null; 
+let testStartTime = null; // 🔥 NEW: Tracks when they clicked Start
 
 async function loadDashboard() {
     const testRes = await fetch(`${BASE_URL}/api/student/tests`, { headers: { 'Authorization': `Bearer ${token}` }});
@@ -32,9 +33,7 @@ function renderDashboard() {
     globalSubmissions.forEach(sub => {
         let badge = sub.status === 'graded' ? '<span class="badge bg-success">Graded</span>' : '<span class="badge bg-warning text-dark">Under Review</span>';
         let reviewBtn = sub.status === 'graded' ? `<button class="btn btn-outline-primary btn-sm w-100 fw-bold mt-3" onclick="viewDetails('${sub._id}')">Review Answers</button>` : `<div class="text-center mt-3 small text-muted"><i class="fa-solid fa-lock me-1"></i>Answers locked until graded</div>`;
-        
         let scoreDisplay = sub.status === 'graded' ? sub.finalScore : '<i class="fa-solid fa-eye-slash me-2"></i>Hidden';
-        
         subContainer.innerHTML += `<div class="card shadow-sm border-0 mb-3 bg-white"><div class="card-body"><div class="d-flex justify-content-between mb-2"><h6 class="fw-bold mb-0 text-dark">${sub.testId ? sub.testId.title : 'Deleted'}</h6>${badge}</div><div class="fs-5 fw-bold text-primary">Score: ${scoreDisplay}</div>${reviewBtn}</div></div>`;
     });
 }
@@ -66,7 +65,6 @@ window.playAudio = function(numbersString) {
     window.speechSynthesis.speak(utterance);
 };
 
-// 🔥 NEW: Timer Logic
 function startTimer(minutes) {
     let timeRemaining = minutes * 60;
     const display = document.getElementById('timerDisplay');
@@ -80,7 +78,7 @@ function startTimer(minutes) {
         if (timeRemaining <= 0) {
             clearInterval(countdownInterval);
             alert("Time is up! Submitting your test automatically.");
-            submitTest(true); // Forces submission without asking for confirmation
+            submitTest(true); 
         }
         timeRemaining--;
     }, 1000);
@@ -93,7 +91,8 @@ window.startTest = function(id) {
     document.getElementById('testTakingSection').classList.remove('d-none');
     document.getElementById('activeTestTitle').innerText = activeTest.title;
 
-    // Start the clock!
+    // Start tracking the time!
+    testStartTime = Date.now();
     startTimer(activeTest.timeLimitMinutes);
 
     const qContainer = document.getElementById('activeTestQuestions'); qContainer.innerHTML = '';
@@ -109,37 +108,38 @@ window.startTest = function(id) {
 }
 
 window.cancelTest = function() { 
-    activeTest = null; 
-    clearInterval(countdownInterval); // Stop the clock
+    activeTest = null; testStartTime = null;
+    clearInterval(countdownInterval); 
     window.speechSynthesis.cancel(); 
     renderDashboard(); 
 }
 
-// 🔥 UPDATED: Added isAutoSubmit flag for when the timer hits zero
 window.submitTest = async function(isAutoSubmit = false) {
     const answers = {}; let allFilled = true;
     
     activeTest.questions.forEach(q => {
         const selectedRadio = document.querySelector(`input[name="q_${q.questionId}"]:checked`);
-        if (!selectedRadio) {
-            allFilled = false;
-        } else {
-            answers[q.questionId] = selectedRadio.value;
-        }
+        if (!selectedRadio) allFilled = false;
+        else answers[q.questionId] = selectedRadio.value;
     });
     
-    // Only block submission if the student clicked submit manually. If time is up, submit whatever they have!
     if (!isAutoSubmit && !allFilled) { alert("Please select an answer for all questions before submitting."); return; }
     if (!isAutoSubmit && !confirm("Are you sure you want to submit?")) return;
 
-    clearInterval(countdownInterval); // Stop the clock
+    clearInterval(countdownInterval); 
+    
+    // 🔥 NEW: Calculate exactly how many seconds they took
+    const timeTakenSeconds = testStartTime ? Math.floor((Date.now() - testStartTime) / 1000) : 0;
 
     try {
-        const res = await fetch(`${BASE_URL}/api/student/submit`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ testId: activeTest._id, answers }) });
+        const res = await fetch(`${BASE_URL}/api/student/submit`, { 
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, 
+            body: JSON.stringify({ testId: activeTest._id, answers, timeTakenSeconds }) // Send it to DB
+        });
         if (res.ok) { 
             if (!isAutoSubmit) alert("Submitted successfully!"); 
-            activeTest = null; 
-            loadDashboard(); 
+            activeTest = null; loadDashboard(); 
         }
     } catch (e) { alert("Error submitting test."); }
 }

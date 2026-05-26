@@ -3,9 +3,7 @@ const mongoose = require('mongoose');
 const submissionSchema = new mongoose.Schema({
     studentId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     testId: { type: mongoose.Schema.Types.ObjectId, ref: 'Test' },
-    studentName: String,
-    
-    // 🔥 NEW: Storing the exact breakdown of what they got right/wrong
+    studentName: String, 
     answers: [{
         questionId: String,
         numbersArray: [Number],
@@ -13,8 +11,8 @@ const submissionSchema = new mongoose.Schema({
         correctAnswer: Number,
         isCorrect: Boolean
     }],
-    
     finalScore: { type: Number, default: 0 },
+    timeTakenSeconds: { type: Number, default: 0 }, // 🔥 NEW: Tracks time taken
     status: { type: String, default: 'pending_review' }, 
     adminFeedback: { type: String, default: '' },
     submitTime: { type: Date, default: Date.now }
