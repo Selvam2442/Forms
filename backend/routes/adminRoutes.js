@@ -75,7 +75,9 @@ router.post('/tests', async (req, res) => {
         
         const processedQuestions = questions.map((q, index) => ({
             questionId: `Q${index + 1}`,
-            numbersArray: q.numbersArray
+            numbersArray: q.numbersArray,
+            // 🔥 THE FIX: Calculate the answer and attach it so MongoDB accepts it!
+            correctAnswer: q.numbersArray.reduce((sum, num) => sum + num, 0) 
         }));
 
         const newTest = new Test({
@@ -89,7 +91,7 @@ router.post('/tests', async (req, res) => {
         await newTest.save();
         res.status(201).json({ message: "Test saved!", test: newTest });
     } catch (error) {
-        // 🔥 THIS WILL PRINT THE EXACT REASON IT CRASHED TO RENDER LOGS
+        // This will print the exact reason it crashed to Render logs
         console.error("TEST CREATION ERROR:", error);
         res.status(500).json({ error: error.message || "Server error creating test." });
     }
