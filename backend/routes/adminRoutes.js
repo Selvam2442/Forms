@@ -89,7 +89,9 @@ router.post('/tests', async (req, res) => {
         await newTest.save();
         res.status(201).json({ message: "Test saved!", test: newTest });
     } catch (error) {
-        res.status(500).json({ error: "Server error creating test." });
+        // 🔥 THIS WILL PRINT THE EXACT REASON IT CRASHED TO RENDER LOGS
+        console.error("TEST CREATION ERROR:", error);
+        res.status(500).json({ error: error.message || "Server error creating test." });
     }
 });
 
