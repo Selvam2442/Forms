@@ -45,7 +45,19 @@
                 </div>
 
                 <h5 class="fw-bold mb-3 text-warning text-uppercase"><i class="fa-solid fa-trophy me-2"></i>Rankings By Test</h5>
-                <div id="adminLeaderboardContainer"></div>
+                <div id="adminLeaderboardContainer" class="mb-4"></div>
+
+                <div class="card shadow-sm border-0 rounded-3 p-3 mb-4 bg-white">
+                    <h5 class="fw-bold mb-2 text-dark"><i class="fa-solid fa-users me-2"></i>Students Directory</h5>
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead>
+                                <tr><th>ID</th><th>Name</th><th>PIN</th><th>Action</th></tr>
+                            </thead>
+                            <tbody id="studentTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
 
             <div class="col-12 col-xl-8">
@@ -71,6 +83,18 @@
                             </div>
                         </div>
                     </form>
+                </div>
+
+                <div class="card shadow-sm border-0 rounded-3 p-3 mb-5 bg-white">
+                    <h5 class="fw-bold mb-2 text-dark"><i class="fa-solid fa-layer-group me-2"></i>Managed Tests</h5>
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead>
+                                <tr><th>Title</th><th>Specs</th><th>Status</th><th>Toggle</th></tr>
+                            </thead>
+                            <tbody id="testTableBody"></tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>

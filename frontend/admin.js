@@ -1,4 +1,6 @@
 const token = localStorage.getItem('token');
+const BASE_URL = 'https://forms-xg9n.onrender.com';
+
 if (!token) window.location.href = 'index.html';
 
 document.getElementById('logoutBtn').addEventListener('click', () => {
@@ -6,19 +8,17 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
     window.location.href = 'index.html';
 });
 
-// Chart Instances
 let statusChartObj = null;
 let scoreChartObj = null;
 
 // ==========================================
-// STUDENT DIRECTORY & QUIZ BUILDER 
+// STUDENT DIRECTORY
 // ==========================================
-// (Standard student & test creation logic from before)
 document.getElementById('createStudentForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const nameInput = document.getElementById('studentName').value;
     try {
-        const res = await fetch('https://forms-xg9n.onrender.com/api/admin/students', {
+        const res = await fetch(`${BASE_URL}/api/admin/students`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
             body: JSON.stringify({ name: nameInput })
@@ -27,10 +27,46 @@ document.getElementById('createStudentForm').addEventListener('submit', async (e
         if (res.ok) {
             alert(`Student Created!\nName: ${data.student.name}\nID: ${data.student.rollNumber}\nPIN: ${data.student.pin}`);
             document.getElementById('studentName').value = '';
+            loadStudents(); // Refresh the table!
         }
     } catch (e) { alert("Server Error"); }
 });
 
+async function loadStudents() {
+    try {
+        const response = await fetch(`${BASE_URL}/api/admin/students`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (response.ok) {
+            const students = await response.json();
+            const tbody = document.getElementById('studentTableBody');
+            if (!tbody) return; 
+            tbody.innerHTML = ''; 
+            students.forEach(student => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><span class="badge bg-secondary">${student.rollNumber}</span></td>
+                    <td class="small fw-bold text-dark">${student.name}</td>
+                    <td class="small text-danger font-monospace">${student.pin}</td>
+                    <td><button class="btn btn-xs btn-outline-danger btn-sm py-0" onclick="deleteStudent('${student.rollNumber}')"><i class="fa-solid fa-trash"></i></button></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+    } catch (e) {}
+}
+
+window.deleteStudent = async function(rollNumber) {
+    if (!confirm(`Wipe user record for ${rollNumber}?`)) return;
+    await fetch(`${BASE_URL}/api/admin/students/${rollNumber}`, {
+        method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` }
+    });
+    loadStudents();
+};
+
+// ==========================================
+// QUIZ BUILDER & TEST LIST
+// ==========================================
 let isDraftMode = false;
 function addQuestionCard() {
     const card = document.createElement('div');
@@ -68,7 +104,7 @@ document.getElementById('createTestForm').addEventListener('submit', async (e) =
         if (input.value.trim()) questionsArray.push({ numbersArray: input.value.split(',').map(n => parseInt(n.trim(), 10)) });
     });
     try {
-        const res = await fetch('https://forms-xg9n.onrender.com/api/admin/tests', {
+        const res = await fetch(`${BASE_URL}/api/admin/tests`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
             body: JSON.stringify({ title, timeLimitMinutes: parseInt(timeLimit), questions: questionsArray, isActive: !isDraftMode })
@@ -78,9 +114,42 @@ document.getElementById('createTestForm').addEventListener('submit', async (e) =
             document.getElementById('testTitle').value = '';
             document.getElementById('questionsContainer').innerHTML = '';
             addQuestionCard();
+            loadTests(); // Refresh the table!
         }
     } catch (e) { alert("Server Error"); }
 });
+
+async function loadTests() {
+    try {
+        const response = await fetch(`${BASE_URL}/api/admin/tests`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (response.ok) {
+            const tests = await response.json();
+            const tbody = document.getElementById('testTableBody');
+            if (!tbody) return; 
+            tbody.innerHTML = ''; 
+            tests.forEach(test => {
+                const stateBadge = test.isActive ? `<span class="badge bg-success">Live</span>` : `<span class="badge bg-secondary">Draft</span>`;
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="small fw-bold">${test.title}</td>
+                    <td class="small text-muted">${test.questions.length}Q | ${test.timeLimitMinutes}m</td>
+                    <td>${stateBadge}</td>
+                    <td><button class="btn btn-xs btn-light btn-sm py-0" onclick="toggleTest('${test._id}')"><i class="fa-solid fa-gear"></i></button></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+    } catch (e) {}
+}
+
+window.toggleTest = async function(testId) {
+    await fetch(`${BASE_URL}/api/admin/tests/${testId}/toggle`, {
+        method: 'PUT', headers: { 'Authorization': `Bearer ${token}` }
+    });
+    loadTests(); 
+};
 
 // ==========================================
 // ANALYTICS & SUBMISSIONS & LEADERBOARD
@@ -99,11 +168,9 @@ function renderCharts(submissions) {
         scoresByTest[testName].count += 1;
     });
 
-    // Destroy old charts if they exist
     if(statusChartObj) statusChartObj.destroy();
     if(scoreChartObj) scoreChartObj.destroy();
 
-    // Pie Chart
     statusChartObj = new Chart(document.getElementById('statusChart'), {
         type: 'doughnut',
         data: {
@@ -113,7 +180,6 @@ function renderCharts(submissions) {
         options: { plugins: { title: { display: true, text: 'Submission Status' } } }
     });
 
-    // Bar Chart
     const testLabels = Object.keys(scoresByTest);
     const avgScores = testLabels.map(t => scoresByTest[t].total / scoresByTest[t].count);
     scoreChartObj = new Chart(document.getElementById('scoreChart'), {
@@ -128,12 +194,12 @@ function renderCharts(submissions) {
 
 async function renderReviewEcosystem() {
     try {
-        const response = await fetch('https://forms-xg9n.onrender.com/api/admin/submissions', {
+        const response = await fetch(`${BASE_URL}/api/admin/submissions`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         if (response.ok) {
             const submissions = await response.json();
-            renderCharts(submissions); // Trigger Chart.js
+            renderCharts(submissions); 
 
             const container = document.getElementById('submissionsContainer');
             container.innerHTML = ''; 
@@ -168,8 +234,7 @@ async function renderReviewEcosystem() {
             });
         }
 
-        // Fetch Grouped Leaderboard
-        const leadRes = await fetch('https://forms-xg9n.onrender.com/api/admin/leaderboard', {
+        const leadRes = await fetch(`${BASE_URL}/api/admin/leaderboard`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         if (leadRes.ok) {
@@ -180,9 +245,7 @@ async function renderReviewEcosystem() {
             for (const [testName, leaders] of Object.entries(groupedLeaders)) {
                 const wrapper = document.createElement('div');
                 wrapper.className = 'mb-3 card border-0 shadow-sm';
-                
                 let listHtml = `<div class="card-header bg-primary text-white fw-bold small">${testName}</div><ul class="list-group list-group-flush">`;
-                
                 leaders.forEach((entry, idx) => {
                     let iconColor = idx === 0 ? 'gold' : idx === 1 ? 'silver' : idx === 2 ? '#cd7f32' : 'gray';
                     listHtml += `
@@ -203,7 +266,7 @@ async function renderReviewEcosystem() {
 window.processApproval = async function(id) {
     const note = prompt("Enter review notes:", "Excellent work!");
     if (note === null) return;
-    await fetch(`https://forms-xg9n.onrender.com/api/admin/submissions/${id}/approve`, {
+    await fetch(`${BASE_URL}/api/admin/submissions/${id}/approve`, {
         method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ feedback: note })
     });
     renderReviewEcosystem();
@@ -211,10 +274,13 @@ window.processApproval = async function(id) {
 
 window.forceResetRetake = async function(id) {
     if (!confirm("Delete submission and allow retake?")) return;
-    await fetch(`https://forms-xg9n.onrender.com/api/admin/submissions/${id}/reset`, {
+    await fetch(`${BASE_URL}/api/admin/submissions/${id}/reset`, {
         method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` }
     });
     renderReviewEcosystem();
 };
 
+// INITIALIZE DASHBOARD
+loadStudents();
+loadTests();
 renderReviewEcosystem();
