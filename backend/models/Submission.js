@@ -1,18 +1,22 @@
 const mongoose = require('mongoose');
 
-const testSchema = new mongoose.Schema({
-    title: String,
-    timeLimitMinutes: Number,
-    isActive: { type: Boolean, default: true },
-    availableFrom: { type: Date, default: null }, // 🔥 NEW: When the test opens
-    dueDate: { type: Date, default: null },       // 🔥 NEW: When the test closes (Deadline)
-    questions: [{
+const submissionSchema = new mongoose.Schema({
+    studentId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    testId: { type: mongoose.Schema.Types.ObjectId, ref: 'Test' },
+    studentName: String, 
+    answers: [{
         questionId: String,
         numbersArray: [Number],
-        correctAnswer: Number
+        studentAnswer: Number,
+        correctAnswer: Number,
+        isCorrect: Boolean
     }],
-    assignedTo: [String],
-    createdAt: { type: Date, default: Date.now }
+    finalScore: { type: Number, default: 0 },
+    timeTakenSeconds: { type: Number, default: 0 }, 
+    status: { type: String, default: 'pending_review' }, 
+    adminFeedback: { type: String, default: '' },
+    submitTime: { type: Date, default: Date.now }
 });
 
-module.exports = mongoose.model('Test', testSchema);
+// 🔥 THE FIX: Prevents the OverwriteModelError crash
+module.exports = mongoose.models.Submission || mongoose.model('Submission', submissionSchema);
