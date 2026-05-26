@@ -96,8 +96,10 @@
                 <div class="row row-cols-1 row-cols-md-2 g-3 mb-4" id="submissionsContainer"></div>
 
                 <div class="card shadow-sm border-0 rounded-3 p-3 mb-4 bg-white">
-                    <h5 class="fw-bold mb-3 text-primary"><i class="fa-solid fa-file-pen me-2"></i>Quiz Builder</h5>
+                    <h5 class="fw-bold mb-3 text-primary" id="quizBuilderTitle"><i
+                            class="fa-solid fa-file-pen me-2"></i>Quiz Builder</h5>
                     <form id="createTestForm">
+                        <input type="hidden" id="editingTestId">
                         <div class="mb-3"><input type="text" id="testTitle"
                                 class="form-control form-control-lg border-0 border-bottom" placeholder="Untitled Test"
                                 required style="border-radius: 0;"></div>
@@ -111,14 +113,30 @@
                                 style="width: 140px;"><label class="small fw-bold text-muted ms-2"><i
                                     class="fa-solid fa-calendar-xmark me-1"></i>DUE:</label><input type="datetime-local"
                                 id="testDueDate" class="form-control form-control-sm" style="width: 140px;"></div>
+
+                        <div class="mb-3">
+                            <label class="small fw-bold text-muted mb-1"><i class="fa-solid fa-users me-1"></i>ASSIGN
+                                TO:</label>
+                            <div class="border rounded p-2 bg-light shadow-inner"
+                                style="max-height: 120px; overflow-y: auto;" id="assignToContainer">
+                            </div>
+                        </div>
+
                         <div id="questionsContainer"></div>
-                        <div class="d-flex justify-content-between mt-3"><button type="button" id="addQuestionBtn"
+
+                        <div class="d-flex justify-content-between mt-3">
+                            <button type="button" id="addQuestionBtn"
                                 class="btn btn-outline-secondary btn-sm rounded-pill px-3"><i
                                     class="fa-solid fa-plus me-1"></i>Add Question</button>
-                            <div><button type="submit" onclick="isDraftMode = true"
-                                    class="btn btn-light btn-sm fw-bold me-2">Save Draft</button><button type="submit"
-                                    onclick="isDraftMode = false" class="btn btn-success btn-sm fw-bold">Publish
-                                    Live</button></div>
+                            <div>
+                                <button type="button" id="cancelEditBtn"
+                                    class="btn btn-light btn-sm fw-bold me-2 d-none" onclick="cancelEditMode()">Cancel
+                                    Edit</button>
+                                <button type="submit" onclick="isDraftMode = true" id="btnDraft"
+                                    class="btn btn-light btn-sm fw-bold me-2">Save Draft</button>
+                                <button type="submit" onclick="isDraftMode = false" id="btnPublish"
+                                    class="btn btn-success btn-sm fw-bold">Publish Live</button>
+                            </div>
                         </div>
                     </form>
                 </div>
@@ -130,7 +148,7 @@
                                 <tr>
                                     <th>Title</th>
                                     <th>Specs</th>
-                                    <th>Window</th>
+                                    <th>Target</th>
                                     <th>Status</th>
                                     <th>Actions</th>
                                 </tr>
@@ -190,4 +208,4 @@
     <script src="admin.js"></script>
 </body>
 
-</html>  
+</html>

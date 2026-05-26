@@ -21,12 +21,16 @@ router.use(verifyStudent);
 router.get('/tests', async (req, res) => {
     try {
         const now = new Date();
-        // 🔥 THE FIX: The strict Open/Close Window Rule
         const tests = await Test.find({ 
             isActive: true,
             $and: [
                 { $or: [{ availableFrom: null }, { availableFrom: { $lte: now } }] },
                 { $or: [{ dueDate: null }, { dueDate: { $gte: now } }] }
+            ],
+            // 🔥 THE FIX: Can only see if "assignedTo" is empty (Everyone) OR includes their Roll Number
+            $or: [
+                { assignedTo: { $size: 0 } },
+                { assignedTo: req.user.rollNumber }
             ]
         }).select('-questions.correctAnswer');
         res.status(200).json(tests);
@@ -60,15 +64,8 @@ router.post('/submit', async (req, res) => {
         });
 
         const submission = new Submission({
-            studentId: req.user.userId,
-            studentName: req.user.name,
-            testId: test._id,
-            answers: gradedAnswers,
-            finalScore: score,
-            timeTakenSeconds: timeTakenSeconds || 0,
-            status: 'pending_review'
+            studentId: req.user.userId, studentName: req.user.name, testId: test._id, answers: gradedAnswers, finalScore: score, timeTakenSeconds: timeTakenSeconds || 0, status: 'pending_review'
         });
-
         await submission.save();
         res.status(201).json({ message: "Test submitted successfully!" });
     } catch (error) { res.status(500).json({ error: "Server error submitting test." }); }

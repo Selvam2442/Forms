@@ -11,9 +11,8 @@ const testSchema = new mongoose.Schema({
         numbersArray: [Number],
         correctAnswer: Number
     }],
-    assignedTo: [String],
+    assignedTo: { type: [String], default: [] }, // 🔥 NEW: Empty means "Everyone", otherwise contains Roll Numbers
     createdAt: { type: Date, default: Date.now }
 });
 
-// 🔥 THE FIX: Checks if the model exists before trying to create it again
 module.exports = mongoose.models.Test || mongoose.model('Test', testSchema);
