@@ -1,94 +1,92 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Abacus LMS - Login</title>
+    <link rel="manifest" href="manifest.json">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body { background-color: #f4f6f9; height: 100vh; display: flex; align-items: center; justify-content: center; }
-        .login-card { max-width: 400px; width: 100%; }
-        .nav-pills .nav-link.active { background-color: #0d6efd; color: white; fw-bold; }
-        .nav-pills .nav-link { color: #6c757d; font-weight: 600; }
+        body {
+            background-color: #f4f6f9;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .login-card {
+            max-width: 400px;
+            width: 100%;
+        }
+
+        .nav-pills .nav-link.active {
+            background-color: #0d6efd;
+            color: white;
+            font-weight: bold;
+        }
+
+        .nav-pills .nav-link {
+            color: #6c757d;
+            font-weight: 600;
+        }
     </style>
 </head>
-<body>
 
+<body>
     <div class="card border-0 shadow-lg p-4 login-card rounded-4">
         <div class="text-center mb-4">
             <h2 class="fw-bold text-primary"><i class="fa-solid fa-calculator me-2"></i>Abacus LMS</h2>
             <p class="text-muted small">Welcome to the learning portal</p>
         </div>
-
         <ul class="nav nav-pills nav-fill mb-4 p-1 bg-light rounded-pill" id="pills-tab" role="tablist">
-            <li class="nav-item" role="presentation">
-                <button class="nav-link active rounded-pill" id="student-tab" data-bs-toggle="pill" data-bs-target="#student-login" type="button" role="tab">Student</button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link rounded-pill" id="admin-tab" data-bs-toggle="pill" data-bs-target="#admin-login" type="button" role="tab">Instructor</button>
-            </li>
+            <li class="nav-item"><button class="nav-link active rounded-pill" data-bs-toggle="pill"
+                    data-bs-target="#student-login">Student</button></li>
+            <li class="nav-item"><button class="nav-link rounded-pill" data-bs-toggle="pill"
+                    data-bs-target="#admin-login">Instructor</button></li>
         </ul>
-
         <div class="tab-content">
             <div class="tab-pane fade show active" id="student-login">
                 <form id="studentLoginForm">
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold text-muted">Roll Number (e.g., AB001)</label>
-                        <input type="text" id="stuRollNumber" class="form-control form-control-lg bg-light" required>
-                    </div>
-                    <div class="mb-4">
-                        <label class="form-label small fw-bold text-muted">Secret PIN</label>
-                        <input type="password" id="stuPin" class="form-control form-control-lg bg-light" required>
-                    </div>
-                    <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold rounded-pill">Enter Portal</button>
+                    <div class="mb-3"><label class="form-label small fw-bold text-muted">Roll Number</label><input
+                            type="text" id="stuRollNumber" class="form-control form-control-lg bg-light" required></div>
+                    <div class="mb-4"><label class="form-label small fw-bold text-muted">Secret PIN</label><input
+                            type="password" id="stuPin" class="form-control form-control-lg bg-light" required></div>
+                    <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold rounded-pill">Enter
+                        Portal</button>
                 </form>
             </div>
-
             <div class="tab-pane fade" id="admin-login">
                 <form id="adminLoginForm">
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold text-muted">Admin Username</label>
-                        <input type="text" id="adminUser" class="form-control form-control-lg bg-light" required>
-                    </div>
-                    <div class="mb-4">
-                        <label class="form-label small fw-bold text-muted">Admin Password</label>
-                        <input type="password" id="adminPass" class="form-control form-control-lg bg-light" required>
-                    </div>
+                    <div class="mb-3"><label class="form-label small fw-bold text-muted">Username</label><input
+                            type="text" id="adminUser" class="form-control form-control-lg bg-light" required></div>
+                    <div class="mb-4"><label class="form-label small fw-bold text-muted">Password</label><input
+                            type="password" id="adminPass" class="form-control form-control-lg bg-light" required></div>
                     <button type="submit" class="btn btn-dark btn-lg w-100 fw-bold rounded-pill">Admin Access</button>
                 </form>
             </div>
         </div>
     </div>
-
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js'); }
         const BASE_URL = 'https://forms-xg9n.onrender.com';
-
         async function handleLogin(e, role) {
             e.preventDefault();
             const identifier = role === 'student' ? document.getElementById('stuRollNumber').value : document.getElementById('adminUser').value;
             const secret = role === 'student' ? document.getElementById('stuPin').value : document.getElementById('adminPass').value;
-
             try {
-                const res = await fetch(`${BASE_URL}/api/auth/login`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ role, identifier, secret })
-                });
+                const res = await fetch(`${BASE_URL}/api/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ role, identifier, secret }) });
                 const data = await res.json();
-
-                if (res.ok) {
-                    localStorage.setItem('token', data.token);
-                    window.location.href = role === 'student' ? 'student.html' : 'admin.html';
-                } else {
-                    alert(data.error || "Login Failed");
-                }
-            } catch (err) { alert("Server connection error."); }
+                if (res.ok) { localStorage.setItem('token', data.token); window.location.href = role === 'student' ? 'student.html' : 'admin.html'; }
+                else { alert(data.error); }
+            } catch (err) { alert("Server error."); }
         }
-
         document.getElementById('studentLoginForm').addEventListener('submit', (e) => handleLogin(e, 'student'));
         document.getElementById('adminLoginForm').addEventListener('submit', (e) => handleLogin(e, 'admin'));
     </script>
 </body>
+
 </html>

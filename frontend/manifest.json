@@ -1,0 +1,16 @@
+{
+  "name": "Abacus LMS",
+  "short_name": "Abacus",
+  "description": "Learning Management System",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0d6efd",
+  "theme_color": "#0d6efd",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3074/3074058.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
