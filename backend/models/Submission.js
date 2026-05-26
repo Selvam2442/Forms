@@ -1,21 +1,18 @@
 const mongoose = require('mongoose');
 
-const submissionSchema = new mongoose.Schema({
-    studentId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-    testId: { type: mongoose.Schema.Types.ObjectId, ref: 'Test' },
-    studentName: String, 
-    answers: [{
+const testSchema = new mongoose.Schema({
+    title: String,
+    timeLimitMinutes: Number,
+    isActive: { type: Boolean, default: true },
+    availableFrom: { type: Date, default: null }, // 🔥 NEW: When the test opens
+    dueDate: { type: Date, default: null },       // 🔥 NEW: When the test closes (Deadline)
+    questions: [{
         questionId: String,
         numbersArray: [Number],
-        studentAnswer: Number,
-        correctAnswer: Number,
-        isCorrect: Boolean
+        correctAnswer: Number
     }],
-    finalScore: { type: Number, default: 0 },
-    timeTakenSeconds: { type: Number, default: 0 }, // 🔥 NEW: Tracks time taken
-    status: { type: String, default: 'pending_review' }, 
-    adminFeedback: { type: String, default: '' },
-    submitTime: { type: Date, default: Date.now }
+    assignedTo: [String],
+    createdAt: { type: Date, default: Date.now }
 });
 
-module.exports = mongoose.model('Submission', submissionSchema);
+module.exports = mongoose.model('Test', testSchema);

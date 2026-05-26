@@ -20,9 +20,14 @@ router.use(verifyStudent);
 
 router.get('/tests', async (req, res) => {
     try {
+        const now = new Date();
+        // 🔥 THE FIX: The strict Open/Close Window Rule
         const tests = await Test.find({ 
             isActive: true,
-            $or: [{ scheduledFor: { $exists: false } }, { scheduledFor: { $lte: new Date() } }]
+            $and: [
+                { $or: [{ availableFrom: null }, { availableFrom: { $lte: now } }] },
+                { $or: [{ dueDate: null }, { dueDate: { $gte: now } }] }
+            ]
         }).select('-questions.correctAnswer');
         res.status(200).json(tests);
     } catch (error) { res.status(500).json({ error: "Server error fetching tests." }); }
@@ -60,7 +65,7 @@ router.post('/submit', async (req, res) => {
             testId: test._id,
             answers: gradedAnswers,
             finalScore: score,
-            timeTakenSeconds: timeTakenSeconds || 0, // 🔥 NEW: Save the time!
+            timeTakenSeconds: timeTakenSeconds || 0,
             status: 'pending_review'
         });
 

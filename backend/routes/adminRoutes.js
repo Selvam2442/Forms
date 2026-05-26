@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
-
 const User = require('../models/User');
 const Test = require('../models/Test');
 const Submission = require('../models/Submission');
@@ -11,7 +10,7 @@ const verifyAdmin = (req, res, next) => {
     if (!authHeader) return res.status(403).json({ error: "Access Denied." });
     const token = authHeader.split(' ')[1];
     try {
-        const verified = jwt.verify(token, process.env.JWT_SECRET);
+        const verified = jwt.verify(token, process.env.JWT_SECRET || 'supersecret');
         if (verified.role !== 'admin') return res.status(403).json({ error: "Admin access required." });
         req.user = verified;
         next();
@@ -20,7 +19,6 @@ const verifyAdmin = (req, res, next) => {
 
 router.use(verifyAdmin);
 
-// === STUDENT MANAGEMENT (CUSTOM PIN & EDIT) ===
 router.post('/students', async (req, res) => {
     try {
         const { name, pin } = req.body;
@@ -55,10 +53,9 @@ router.delete('/students/:rollNumber', async (req, res) => {
     } catch (error) { res.status(500).json({ error: "Server error" }); }
 });
 
-// === TEST MANAGEMENT (SCHEDULED EVENTS) ===
 router.post('/tests', async (req, res) => {
     try {
-        const { title, timeLimitMinutes, questions, isActive, scheduledFor } = req.body;
+        const { title, timeLimitMinutes, questions, isActive, availableFrom, dueDate } = req.body;
         const processedQuestions = questions.map((q, index) => ({
             questionId: `Q${index + 1}`,
             numbersArray: q.numbersArray,
@@ -71,7 +68,8 @@ router.post('/tests', async (req, res) => {
             assignedTo: [], 
             questions: processedQuestions, 
             isActive,
-            scheduledFor: scheduledFor ? new Date(scheduledFor) : Date.now()
+            availableFrom: availableFrom ? new Date(availableFrom) : null,
+            dueDate: dueDate ? new Date(dueDate) : null
         });
         await newTest.save();
         res.status(201).json({ message: "Test saved!", test: newTest });
@@ -102,7 +100,6 @@ router.delete('/tests/:id', async (req, res) => {
     } catch (error) { res.status(500).json({ error: "Server error deleting test." }); }
 });
 
-// === SUBMISSIONS (BULK APPROVE) ===
 router.get('/submissions', async (req, res) => {
     try {
         const submissions = await Submission.find().populate('testId', 'title').sort({ submitTime: -1 });
@@ -120,14 +117,10 @@ router.put('/submissions/:id/approve', async (req, res) => {
     } catch (error) { res.status(500).json({ error: "Server error" }); }
 });
 
-// 🔥 NEW: Bulk Approve Route
 router.put('/submissions/approve-bulk', async (req, res) => {
     try {
         const { submissionIds } = req.body;
-        await Submission.updateMany(
-            { _id: { $in: submissionIds } },
-            { $set: { status: 'graded', adminFeedback: 'Approved by Instructor' } }
-        );
+        await Submission.updateMany({ _id: { $in: submissionIds } }, { $set: { status: 'graded', adminFeedback: 'Approved by Instructor' } });
         res.status(200).json({ message: "All visible tests approved!" });
     } catch (error) { res.status(500).json({ error: "Server error" }); }
 });

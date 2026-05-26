@@ -4,11 +4,19 @@ const BASE_URL = 'https://forms-xg9n.onrender.com';
 if (!token) window.location.href = 'index.html';
 document.getElementById('logoutBtn').addEventListener('click', () => { localStorage.clear(); window.location.href = 'index.html'; });
 
+// 🔥 Extract Name from Token securely
+try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    if (payload.name) {
+        document.getElementById('studentGreeting').innerHTML = `<i class="fa-solid fa-user me-1"></i>Welcome, ${payload.name}`;
+    }
+} catch (e) { console.error("Could not parse name from token"); }
+
 let globalTests = [];
 let globalSubmissions = [];
 let activeTest = null;
 let countdownInterval = null; 
-let testStartTime = null; // 🔥 NEW: Tracks when they clicked Start
+let testStartTime = null; 
 
 async function loadDashboard() {
     const testRes = await fetch(`${BASE_URL}/api/student/tests`, { headers: { 'Authorization': `Bearer ${token}` }});
@@ -26,7 +34,13 @@ function renderDashboard() {
     const available = globalTests.filter(t => !submittedIds.includes(t._id));
 
     if (available.length === 0) testContainer.innerHTML = '<div class="alert alert-light border border-dashed text-center text-muted">You are all caught up!</div>';
-    available.forEach(t => { testContainer.innerHTML += `<div class="card shadow-sm border-0 mb-3 bg-white"><div class="card-body d-flex justify-content-between align-items-center"><div><h6 class="fw-bold mb-0 text-dark">${t.title}</h6><small class="text-muted">${t.questions.length} Questions | ${t.timeLimitMinutes} Mins</small></div><button class="btn btn-primary btn-sm fw-bold px-3 shadow-sm" onclick="startTest('${t._id}')">Start</button></div></div>`; });
+    
+    available.forEach(t => { 
+        // 🔥 NEW: Show Due Date to the student
+        let dueHtml = t.dueDate ? `<br><small class="text-danger fw-bold"><i class="fa-solid fa-triangle-exclamation me-1"></i>Due: ${new Date(t.dueDate).toLocaleString()}</small>` : '';
+        
+        testContainer.innerHTML += `<div class="card shadow-sm border-0 mb-3 bg-white"><div class="card-body d-flex justify-content-between align-items-center"><div><h6 class="fw-bold mb-0 text-dark">${t.title}</h6><small class="text-muted">${t.questions.length} Questions | ${t.timeLimitMinutes} Mins</small>${dueHtml}</div><button class="btn btn-primary btn-sm fw-bold px-3 shadow-sm" onclick="startTest('${t._id}')">Start</button></div></div>`; 
+    });
 
     const subContainer = document.getElementById('myResultsContainer'); subContainer.innerHTML = '';
     if (globalSubmissions.length === 0) subContainer.innerHTML = '<div class="alert alert-light border border-dashed text-center text-muted">No results yet.</div>';
@@ -90,8 +104,6 @@ window.startTest = function(id) {
     document.getElementById('dashboardSection').classList.add('d-none'); 
     document.getElementById('testTakingSection').classList.remove('d-none');
     document.getElementById('activeTestTitle').innerText = activeTest.title;
-
-    // Start tracking the time!
     testStartTime = Date.now();
     startTimer(activeTest.timeLimitMinutes);
 
@@ -116,26 +128,22 @@ window.cancelTest = function() {
 
 window.submitTest = async function(isAutoSubmit = false) {
     const answers = {}; let allFilled = true;
-    
     activeTest.questions.forEach(q => {
         const selectedRadio = document.querySelector(`input[name="q_${q.questionId}"]:checked`);
-        if (!selectedRadio) allFilled = false;
-        else answers[q.questionId] = selectedRadio.value;
+        if (!selectedRadio) allFilled = false; else answers[q.questionId] = selectedRadio.value;
     });
     
     if (!isAutoSubmit && !allFilled) { alert("Please select an answer for all questions before submitting."); return; }
     if (!isAutoSubmit && !confirm("Are you sure you want to submit?")) return;
 
     clearInterval(countdownInterval); 
-    
-    // 🔥 NEW: Calculate exactly how many seconds they took
     const timeTakenSeconds = testStartTime ? Math.floor((Date.now() - testStartTime) / 1000) : 0;
 
     try {
         const res = await fetch(`${BASE_URL}/api/student/submit`, { 
             method: 'POST', 
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, 
-            body: JSON.stringify({ testId: activeTest._id, answers, timeTakenSeconds }) // Send it to DB
+            body: JSON.stringify({ testId: activeTest._id, answers, timeTakenSeconds }) 
         });
         if (res.ok) { 
             if (!isAutoSubmit) alert("Submitted successfully!"); 

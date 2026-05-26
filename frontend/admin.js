@@ -10,9 +10,6 @@ let statusChartObj = null;
 let scoreChartObj = null;
 window.visiblePendingIds = []; 
 
-// ==========================================
-// 1. STUDENT MANAGEMENT
-// ==========================================
 const studentForm = document.getElementById('createStudentForm');
 if (studentForm) {
     studentForm.addEventListener('submit', async (e) => {
@@ -58,11 +55,7 @@ window.saveNewPin = async function() {
 
 window.deleteStudent = async function(id) { if (!confirm(`Delete student record ${id}?`)) return; await fetch(`${BASE_URL}/api/admin/students/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` }}); loadStudents(); };
 
-// ==========================================
-// 2. QUIZ BUILDER & SCHEDULED TESTS
-// ==========================================
 let isDraftMode = false;
-
 function addQuestionCard() {
     const container = document.getElementById('questionsContainer'); if (!container) return;
     const card = document.createElement('div'); card.className = 'card border-0 bg-light p-3 my-2 position-relative rounded-3'; card.style.borderLeft = '4px solid #4285f4';
@@ -78,12 +71,13 @@ if (testForm) {
     testForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const title = document.getElementById('testTitle').value, timeLimit = document.getElementById('testTime').value;
-        const rawSchedule = document.getElementById('testSchedule').value; const scheduledFor = rawSchedule ? new Date(rawSchedule).toISOString() : null;
+        const availableFrom = document.getElementById('testAvailableFrom').value ? new Date(document.getElementById('testAvailableFrom').value).toISOString() : null;
+        const dueDate = document.getElementById('testDueDate').value ? new Date(document.getElementById('testDueDate').value).toISOString() : null;
         const questionsArray = [];
         document.querySelectorAll('.q-numbers').forEach(i => { if (i.value.trim()) questionsArray.push({ numbersArray: i.value.split(',').map(n => parseInt(n.trim(), 10)) }); });
 
         try {
-            const res = await fetch(`${BASE_URL}/api/admin/tests`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ title, timeLimitMinutes: parseInt(timeLimit), questions: questionsArray, isActive: !isDraftMode, scheduledFor }) });
+            const res = await fetch(`${BASE_URL}/api/admin/tests`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ title, timeLimitMinutes: parseInt(timeLimit), questions: questionsArray, isActive: !isDraftMode, availableFrom, dueDate }) });
             if (res.ok) { alert("Test Created!"); window.location.reload(); }
         } catch (e) { alert("Error"); }
     });
@@ -99,8 +93,11 @@ async function loadTests() {
             tests.forEach(test => {
                 if (testFilter) testFilter.innerHTML += `<option value="${test.title}">${test.title}</option>`;
                 const badge = test.isActive ? `<span class="badge bg-success">Live</span>` : `<span class="badge bg-secondary">Draft</span>`;
-                const scheduleDisplay = new Date(test.scheduledFor).toLocaleDateString('en-US', {month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit'});
-                if (tbody) { tbody.innerHTML += `<tr><td class="small fw-bold">${test.title}</td><td class="small text-muted">${test.questions.length}Q | ${test.timeLimitMinutes}m</td><td class="small text-muted">${scheduleDisplay}</td><td>${badge}</td><td><button class="btn btn-xs btn-light btn-sm py-0 me-1" onclick="toggleTest('${test._id}')"><i class="fa-solid fa-power-off"></i></button><button class="btn btn-xs btn-outline-danger btn-sm py-0" onclick="deleteTest('${test._id}')"><i class="fa-solid fa-trash"></i></button></td></tr>`; }
+                
+                const formatTime = (d) => d ? new Date(d).toLocaleDateString('en-US', {month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit'}) : 'Anytime';
+                const windowHtml = `Open: ${formatTime(test.availableFrom)}<br>Due: <span class="text-danger fw-bold">${formatTime(test.dueDate)}</span>`;
+                
+                if (tbody) { tbody.innerHTML += `<tr><td class="small fw-bold">${test.title}</td><td class="small text-muted">${test.questions.length}Q | ${test.timeLimitMinutes}m</td><td class="small text-muted" style="line-height:1.2;">${windowHtml}</td><td>${badge}</td><td><button class="btn btn-xs btn-light btn-sm py-0 me-1" onclick="toggleTest('${test._id}')"><i class="fa-solid fa-power-off"></i></button><button class="btn btn-xs btn-outline-danger btn-sm py-0" onclick="deleteTest('${test._id}')"><i class="fa-solid fa-trash"></i></button></td></tr>`; }
             });
         }
     } catch (e) {}
@@ -109,18 +106,13 @@ async function loadTests() {
 window.toggleTest = async function(id) { await fetch(`${BASE_URL}/api/admin/tests/${id}/toggle`, { method: 'PUT', headers: { 'Authorization': `Bearer ${token}` }}); loadTests(); };
 window.deleteTest = async function(id) { if (!confirm("Delete test and ALL submissions?")) return; await fetch(`${BASE_URL}/api/admin/tests/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` }}); loadTests(); renderReviewEcosystem(); };
 
-// ==========================================
-// 3. SUBMISSIONS, TIMERS & BULK APPROVE
-// ==========================================
 async function renderReviewEcosystem() {
     try {
         const res = await fetch(`${BASE_URL}/api/admin/submissions`, { headers: { 'Authorization': `Bearer ${token}` }});
         if (res.ok) { globalSubmissions = await res.json(); applyFilters(); renderCharts(globalSubmissions); }
-
         const leadRes = await fetch(`${BASE_URL}/api/admin/leaderboard`, { headers: { 'Authorization': `Bearer ${token}` }});
         if (leadRes.ok) {
-            const groupedLeaders = await leadRes.json();
-            const container = document.getElementById('adminLeaderboardContainer');
+            const groupedLeaders = await leadRes.json(); const container = document.getElementById('adminLeaderboardContainer');
             if (container) {
                 container.innerHTML = '';
                 for (const [testName, leaders] of Object.entries(groupedLeaders)) {
@@ -139,27 +131,20 @@ async function renderReviewEcosystem() {
 function applyFilters() {
     const fName = document.getElementById('filterStudentName'), fStatus = document.getElementById('filterStatus'), fTest = document.getElementById('filterTestName');
     if (!fName || !fStatus || !fTest) return;
-
     const sName = fName.value.toLowerCase(), sStatus = fStatus.value, sTest = fTest.value;
     const filtered = globalSubmissions.filter(sub => {
         const safeName = (sub.studentName || "Unknown Student").toLowerCase();
         return safeName.includes(sName) && (sStatus === 'all' || sub.status === sStatus) && (sTest === 'all' || (sub.testId && sub.testId.title === sTest));
     });
-
     const container = document.getElementById('submissionsContainer'); if (!container) return;
     container.innerHTML = ''; window.visiblePendingIds = []; 
-
     filtered.forEach(sub => {
         let stat = `<span class="badge bg-success">Approved</span>`, act = `<div class="bg-light p-2 rounded small mt-2 fw-bold text-muted">Notes: ${sub.adminFeedback || ''}</div>`;
         if (sub.status === 'pending_review') { window.visiblePendingIds.push(sub._id); stat = `<span class="badge bg-warning text-dark">Awaiting</span>`; act = `<button class="btn btn-primary btn-sm w-100 fw-bold mt-2" onclick="processApproval('${sub._id}')">Approve</button>`; } 
         else if (sub.status === 'retake_requested') { stat = `<span class="badge bg-info text-dark">Retake Req</span>`; act = `<button class="btn btn-info btn-sm w-100 text-white fw-bold mt-2" onclick="forceResetRetake('${sub._id}')">Grant Retake</button>`; }
-
         const reviewBtn = `<button class="btn btn-outline-dark btn-sm w-100 mt-2 fw-bold" onclick="viewDetails('${sub._id}')"><i class="fa-solid fa-magnifying-glass me-1"></i>View Answers</button>`;
         const displayName = sub.studentName || "Unknown Student";
-        
-        // 🔥 NEW: Format the Time Taken cleanly
         const timeTaken = sub.timeTakenSeconds ? `${Math.floor(sub.timeTakenSeconds / 60)}m ${sub.timeTakenSeconds % 60}s` : 'Unknown Time';
-
         container.innerHTML += `<div class="col"><div class="card shadow-sm border-0 h-100 p-3 bg-white"><div class="d-flex justify-content-between mb-1"><span class="fw-bold text-dark small">${displayName}</span>${stat}</div><div class="small text-muted mb-1">${sub.testId ? sub.testId.title : 'Deleted Test'} <span class="ms-2 badge bg-light text-dark border"><i class="fa-solid fa-stopwatch me-1"></i>${timeTaken}</span></div><div class="fw-bold text-primary">Score: ${sub.finalScore}</div>${act}${reviewBtn}<button class="btn btn-link text-danger btn-sm w-100 mt-1" onclick="forceResetRetake('${sub._id}')" style="text-decoration:none;"><i class="fa-solid fa-eraser me-1"></i>Reset</button></div></div>`;
     });
 }
@@ -171,7 +156,7 @@ if (document.getElementById('filterTestName')) document.getElementById('filterTe
 const bulkBtn = document.getElementById('bulkApproveBtn');
 if (bulkBtn) {
     bulkBtn.addEventListener('click', async () => {
-        if (!window.visiblePendingIds || window.visiblePendingIds.length === 0) return alert("No pending submissions in current view to approve.");
+        if (!window.visiblePendingIds || window.visiblePendingIds.length === 0) return alert("No pending submissions to approve.");
         if (!confirm(`Approve all ${window.visiblePendingIds.length} visible submissions?`)) return;
         await fetch(`${BASE_URL}/api/admin/submissions/approve-bulk`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ submissionIds: window.visiblePendingIds }) });
         renderReviewEcosystem();
