@@ -136,7 +136,6 @@ window.cancelEditMode = function() {
     document.getElementById('cancelEditBtn').classList.add('d-none'); document.getElementById('btnDraft').innerText = "Save Draft"; document.getElementById('btnPublish').innerText = "Publish Live";
 }
 
-// 🔥 SKELETON LOADER INJECTED HERE
 async function loadTests() {
     const tbody = document.getElementById('testTableBody'); 
     
@@ -232,11 +231,8 @@ function renderCharts(submissions) {
     if (!document.getElementById('statusChart') || !document.getElementById('scoreChart')) return; 
     let pending = 0, graded = 0; const scoresByTest = {};
     submissions.forEach(sub => { if (sub.status === 'pending_review' || sub.status === 'retake_requested') pending++; else graded++; const testName = sub.testId ? sub.testId.title : 'Deleted Tests'; if (!scoresByTest[testName]) scoresByTest[testName] = { total: 0, count: 0 }; scoresByTest[testName].total += sub.finalScore; scoresByTest[testName].count += 1; });
-    if(statusChartObj) statusChartObj.destroy(); if(scoreChartObj) scoreChartObj.destroy();
     
-    // Fix chart label color for dark mode
-    const isDark = document.documentElement.getAttribute('data-bs-theme') === 'dark';
-    Chart.defaults.color = isDark ? '#adb5bd' : '#6c757d';
+    if(statusChartObj) statusChartObj.destroy(); if(scoreChartObj) scoreChartObj.destroy();
 
     statusChartObj = new Chart(document.getElementById('statusChart'), { type: 'doughnut', data: { labels: ['Needs Review', 'Graded'], datasets: [{ data: [pending, graded], backgroundColor: ['#ffc107', '#198754'] }] }, options: { responsive: true, maintainAspectRatio: false } });
     const testLabels = Object.keys(scoresByTest); const avgScores = testLabels.map(t => scoresByTest[t].total / scoresByTest[t].count);

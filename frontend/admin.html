@@ -15,22 +15,6 @@
         .nav-tabs .nav-link.active { border-color: #0d6efd; color: #0d6efd; background: transparent; }
         .nav-tabs::-webkit-scrollbar { display: none; } 
     </style>
-    
-    <script>
-        const getPreferredTheme = () => {
-            if (localStorage.getItem('theme')) return localStorage.getItem('theme');
-            return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-        };
-        const setTheme = theme => document.documentElement.setAttribute('data-bs-theme', theme);
-        setTheme(getPreferredTheme());
-
-        window.toggleDarkMode = () => {
-            const current = document.documentElement.getAttribute('data-bs-theme');
-            const next = current === 'dark' ? 'light' : 'dark';
-            localStorage.setItem('theme', next);
-            setTheme(next);
-        };
-    </script>
 </head>
 <body class="bg-light">
 
@@ -44,7 +28,6 @@
         <div class="container-fluid px-3">
             <span class="navbar-brand fw-bold fs-5"><i class="fa-solid fa-calculator me-2"></i>Abacus Admin</span>
             <div>
-                <button class="btn btn-outline-light btn-sm fw-bold px-3 me-2" onclick="toggleDarkMode()" title="Toggle Dark Mode"><i class="fa-solid fa-moon"></i></button>
                 <button class="btn btn-danger btn-sm fw-bold px-3" id="logoutBtn"><i class="fa-solid fa-right-from-bracket me-2"></i>Logout</button>
             </div>
         </div>
