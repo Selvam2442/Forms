@@ -68,7 +68,7 @@ document.getElementById('createTestForm').addEventListener('submit', async (e) =
         if (input.value.trim()) questionsArray.push({ numbersArray: input.value.split(',').map(n => parseInt(n.trim(), 10)) });
     });
     try {
-        const res = await fetch('http://127.0.0.1:5000/api/admin/tests', {
+        const res = await fetch('https://forms-xg9n.onrender.com/api/admin/tests', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
             body: JSON.stringify({ title, timeLimitMinutes: parseInt(timeLimit), questions: questionsArray, isActive: !isDraftMode })
@@ -128,7 +128,7 @@ function renderCharts(submissions) {
 
 async function renderReviewEcosystem() {
     try {
-        const response = await fetch('http://127.0.0.1:5000/api/admin/submissions', {
+        const response = await fetch('https://forms-xg9n.onrender.com/api/admin/submissions', {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         if (response.ok) {
@@ -169,7 +169,7 @@ async function renderReviewEcosystem() {
         }
 
         // Fetch Grouped Leaderboard
-        const leadRes = await fetch('http://127.0.0.1:5000/api/admin/leaderboard', {
+        const leadRes = await fetch('https://forms-xg9n.onrender.com/api/admin/leaderboard', {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         if (leadRes.ok) {
@@ -203,7 +203,7 @@ async function renderReviewEcosystem() {
 window.processApproval = async function(id) {
     const note = prompt("Enter review notes:", "Excellent work!");
     if (note === null) return;
-    await fetch(`http://127.0.0.1:5000/api/admin/submissions/${id}/approve`, {
+    await fetch(`https://forms-xg9n.onrender.com/api/admin/submissions/${id}/approve`, {
         method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ feedback: note })
     });
     renderReviewEcosystem();
@@ -211,7 +211,7 @@ window.processApproval = async function(id) {
 
 window.forceResetRetake = async function(id) {
     if (!confirm("Delete submission and allow retake?")) return;
-    await fetch(`http://127.0.0.1:5000/api/admin/submissions/${id}/reset`, {
+    await fetch(`https://forms-xg9n.onrender.com/api/admin/submissions/${id}/reset`, {
         method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` }
     });
     renderReviewEcosystem();
