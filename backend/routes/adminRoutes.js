@@ -20,17 +20,24 @@ const verifyAdmin = (req, res, next) => {
 
 router.use(verifyAdmin);
 
-// === STUDENT MANAGEMENT ===
+// === STUDENT MANAGEMENT (CUSTOM PIN & EDIT) ===
 router.post('/students', async (req, res) => {
     try {
-        const { name } = req.body;
-        if (!name) return res.status(400).json({ error: "Name is required" });
+        const { name, pin } = req.body;
+        if (!name || !pin) return res.status(400).json({ error: "Name and PIN required" });
         const count = await User.countDocuments({ role: 'student' });
         const rollNumber = `AB${String(count + 1).padStart(3, '0')}`;
-        const pin = Math.floor(1000 + Math.random() * 9000).toString();
         const newStudent = new User({ name, rollNumber, pin, role: 'student' });
         await newStudent.save();
         res.status(201).json({ message: "Created!", student: newStudent });
+    } catch (error) { res.status(500).json({ error: "Server error" }); }
+});
+
+router.put('/students/:rollNumber/pin', async (req, res) => {
+    try {
+        const { pin } = req.body;
+        await User.findOneAndUpdate({ rollNumber: req.params.rollNumber, role: 'student' }, { pin });
+        res.status(200).json({ message: "PIN Updated!" });
     } catch (error) { res.status(500).json({ error: "Server error" }); }
 });
 
@@ -48,16 +55,24 @@ router.delete('/students/:rollNumber', async (req, res) => {
     } catch (error) { res.status(500).json({ error: "Server error" }); }
 });
 
-// === TEST MANAGEMENT ===
+// === TEST MANAGEMENT (SCHEDULED EVENTS) ===
 router.post('/tests', async (req, res) => {
     try {
-        const { title, timeLimitMinutes, questions, isActive } = req.body;
+        const { title, timeLimitMinutes, questions, isActive, scheduledFor } = req.body;
         const processedQuestions = questions.map((q, index) => ({
             questionId: `Q${index + 1}`,
             numbersArray: q.numbersArray,
             correctAnswer: q.numbersArray.reduce((sum, num) => sum + num, 0) 
         }));
-        const newTest = new Test({ title, timeLimitMinutes, assignedTo: [], questions: processedQuestions, isActive });
+        
+        const newTest = new Test({ 
+            title, 
+            timeLimitMinutes, 
+            assignedTo: [], 
+            questions: processedQuestions, 
+            isActive,
+            scheduledFor: scheduledFor ? new Date(scheduledFor) : Date.now()
+        });
         await newTest.save();
         res.status(201).json({ message: "Test saved!", test: newTest });
     } catch (error) { res.status(500).json({ error: error.message }); }
@@ -79,16 +94,15 @@ router.put('/tests/:id/toggle', async (req, res) => {
     } catch (error) { res.status(500).json({ error: "Server error" }); }
 });
 
-// NEW: Delete Test and its submissions
 router.delete('/tests/:id', async (req, res) => {
     try {
         await Test.findByIdAndDelete(req.params.id);
-        await Submission.deleteMany({ testId: req.params.id }); // Clean up old data
+        await Submission.deleteMany({ testId: req.params.id });
         res.status(200).json({ message: "Test permanently deleted." });
     } catch (error) { res.status(500).json({ error: "Server error deleting test." }); }
 });
 
-// === SUBMISSIONS & LEADERBOARD ===
+// === SUBMISSIONS (BULK APPROVE) ===
 router.get('/submissions', async (req, res) => {
     try {
         const submissions = await Submission.find().populate('testId', 'title').sort({ submitTime: -1 });
@@ -103,6 +117,18 @@ router.put('/submissions/:id/approve', async (req, res) => {
         submission.adminFeedback = req.body.feedback || 'Great job!';
         await submission.save();
         res.status(200).json({ message: "Approved!" });
+    } catch (error) { res.status(500).json({ error: "Server error" }); }
+});
+
+// 🔥 NEW: Bulk Approve Route
+router.put('/submissions/approve-bulk', async (req, res) => {
+    try {
+        const { submissionIds } = req.body;
+        await Submission.updateMany(
+            { _id: { $in: submissionIds } },
+            { $set: { status: 'graded', adminFeedback: 'Approved by Instructor' } }
+        );
+        res.status(200).json({ message: "All visible tests approved!" });
     } catch (error) { res.status(500).json({ error: "Server error" }); }
 });
 

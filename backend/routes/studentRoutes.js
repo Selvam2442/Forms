@@ -4,7 +4,6 @@ const jwt = require('jsonwebtoken');
 const Test = require('../models/Test');
 const Submission = require('../models/Submission');
 
-// Security Middleware
 const verifyStudent = (req, res, next) => {
     const authHeader = req.headers['authorization'];
     if (!authHeader) return res.status(403).json({ error: "Access Denied." });
@@ -19,25 +18,40 @@ const verifyStudent = (req, res, next) => {
 
 router.use(verifyStudent);
 
-// Get Active Tests (Hides answers to prevent cheating)
+// 🔥 UPDATED: Only show tests that are active AND have reached their scheduled time
 router.get('/tests', async (req, res) => {
     try {
-        const tests = await Test.find({ isActive: true }).select('-questions.correctAnswer');
+        const tests = await Test.find({ 
+            isActive: true,
+            $or: [
+                { scheduledFor: { $exists: false } },
+                { scheduledFor: { $lte: new Date() } }
+            ]
+        }).select('-questions.correctAnswer');
         res.status(200).json(tests);
     } catch (error) { res.status(500).json({ error: "Server error fetching tests." }); }
 });
 
-// Get My Submissions
+// 🔥 UPDATED: Securely hides the score and answers if not approved yet
 router.get('/my-submissions', async (req, res) => {
     try {
         const submissions = await Submission.find({ studentId: req.user.userId })
             .populate('testId', 'title')
             .sort({ submitTime: -1 });
-        res.status(200).json(submissions);
+            
+        const safeSubmissions = submissions.map(s => {
+            const obj = s.toObject();
+            if (obj.status !== 'graded') {
+                obj.finalScore = undefined; // Hide the score!
+                obj.answers = [];           // Hide the answers!
+            }
+            return obj;
+        });
+
+        res.status(200).json(safeSubmissions);
     } catch (error) { res.status(500).json({ error: "Server error." }); }
 });
 
-// Submit Test & Auto-Grade
 router.post('/submit', async (req, res) => {
     try {
         const { testId, answers } = req.body; 
@@ -68,7 +82,7 @@ router.post('/submit', async (req, res) => {
         });
 
         await submission.save();
-        res.status(201).json({ message: "Test submitted successfully!", score });
+        res.status(201).json({ message: "Test submitted successfully!" });
     } catch (error) {
         console.error("SUBMISSION ERROR:", error);
         res.status(500).json({ error: "Server error submitting test." });

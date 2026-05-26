@@ -6,13 +6,18 @@
     <title>Abacus LMS - Student Dashboard</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .custom-radio .form-check-input { width: 1.5em; height: 1.5em; cursor: pointer; }
+        .custom-radio .form-check-label { margin-left: 10px; cursor: pointer; padding-top: 3px; }
+        .abacus-numbers { letter-spacing: 2px; line-height: 2.2; }
+    </style>
 </head>
 <body class="bg-light">
 
-    <nav class="navbar navbar-expand-lg navbar-primary bg-primary shadow-sm">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
         <div class="container-fluid px-3">
             <span class="navbar-brand fw-bold fs-5 text-white"><i class="fa-solid fa-graduation-cap me-2"></i>Student Portal</span>
-            <button class="btn btn-light btn-sm fw-bold px-3 text-primary" id="logoutBtn">Logout</button>
+            <button class="btn btn-light btn-sm fw-bold px-3 text-primary" id="logoutBtn"><i class="fa-solid fa-power-off me-2"></i>Logout</button>
         </div>
     </nav>
 
@@ -30,13 +35,13 @@
     </div>
 
     <div class="container mt-4 d-none" id="testTakingSection">
-        <div class="card border-0 shadow-lg rounded-4 p-4 mx-auto" style="max-width: 600px;">
+        <div class="card border-0 shadow-lg rounded-4 p-4 mx-auto" style="max-width: 650px;">
             <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
                 <h4 class="fw-bold text-primary mb-0" id="activeTestTitle">Test Title</h4>
-                <button class="btn btn-outline-danger btn-sm fw-bold" onclick="cancelTest()">Cancel</button>
+                <button class="btn btn-outline-danger btn-sm fw-bold px-3" onclick="cancelTest()">Cancel</button>
             </div>
             <div id="activeTestQuestions"></div>
-            <button class="btn btn-success btn-lg w-100 fw-bold mt-4 shadow" onclick="submitTest()">Submit Answers</button>
+            <button class="btn btn-success btn-lg w-100 fw-bold mt-4 shadow" onclick="submitTest()">Submit Test</button>
         </div>
     </div>
 
@@ -44,7 +49,7 @@
       <div class="modal-dialog modal-lg">
         <div class="modal-content border-0 shadow">
           <div class="modal-header bg-primary text-white border-0">
-            <h5 class="modal-title fw-bold"><i class="fa-solid fa-chart-line me-2"></i>My Performance Review</h5>
+            <h5 class="modal-title fw-bold"><i class="fa-solid fa-chart-line me-2"></i>Performance Review</h5>
             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
           </div>
           <div class="modal-body bg-light">
@@ -52,7 +57,7 @@
             <div class="table-responsive bg-white rounded-3 p-2 shadow-sm">
                 <table class="table table-borderless table-hover align-middle text-center mb-0">
                     <thead class="border-bottom">
-                        <tr class="text-muted small text-uppercase"><th>#</th><th>Stack</th><th>My Answer</th><th>Correct Answer</th><th>Result</th></tr>
+                        <tr class="text-muted small text-uppercase"><th>#</th><th>Stack</th><th>My Answer</th><th>Correct</th><th>Result</th></tr>
                     </thead>
                     <tbody id="reviewTableBody"></tbody>
                 </table>
