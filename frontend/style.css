@@ -1,0 +1,43 @@
+/* Reset standard browser margins */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* Base font and background */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f8f9fa; 
+}
+
+/* Custom Login Card Sizing */
+.login-card {
+    width: 100%;
+    max-width: 400px;
+    border: none;
+    border-radius: 12px;
+    background-color: #ffffff;
+}
+
+/* Primary Button Styling */
+.login-btn {
+    background-color: #0d6efd;
+    border: none;
+    border-radius: 8px;
+    padding: 10px;
+    transition: all 0.3s ease-in-out;
+}
+
+/* Smooth Hover Animation for the Button */
+.login-btn:hover {
+    background-color: #0b5ed7;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(13, 110, 253, 0.3);
+}
+
+/* Clean Blue Outline when typing in the inputs */
+.form-control:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}

@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Abacus LMS - Student Portal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        .abacus-question { font-size: 2.5rem; font-weight: bold; text-align: right; letter-spacing: 4px; width: fit-content; margin: 0 auto; }
+        .answer-box { border: 2px solid #0d6efd; border-radius: 12px; font-size: 1.5rem; font-weight: bold; text-align: center; max-width: 200px; margin: 0 auto; }
+    </style>
+</head>
+<body class="bg-light">
+
+    <nav class="navbar navbar-dark bg-primary shadow-sm sticky-top">
+        <div class="container-fluid px-3">
+            <span class="navbar-brand fw-bold fs-5"><i class="fa-solid fa-graduation-cap me-2"></i>Abacus Portal</span>
+            <div>
+                <span class="text-white me-3 small fw-bold" id="studentWelcome"></span>
+                <button class="btn btn-light btn-sm fw-bold text-primary" id="logoutBtn"><i class="fa-solid fa-right-from-bracket"></i></button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container px-3 mt-4">
+        
+        <div id="dashboardSection">
+            <h5 class="fw-bold mb-3 text-secondary"><i class="fa-solid fa-clipboard-list me-2"></i>Assigned Tests</h5>
+            <div id="noTestsMessage" class="alert alert-info d-none fw-bold"><i class="fa-solid fa-circle-check me-2"></i>No pending tests!</div>
+            <div class="row row-cols-1 g-3" id="testsContainer"></div>
+
+            <h5 class="fw-bold mb-3 mt-5 text-secondary"><i class="fa-solid fa-clock-rotate-left me-2"></i>History</h5>
+            <div class="row row-cols-1 g-3" id="historyContainer"></div>
+
+            <h5 class="fw-bold mb-3 mt-5 text-warning"><i class="fa-solid fa-ranking-star me-2"></i>Global Leaderboards</h5>
+            <div class="row row-cols-1 md-cols-2 g-3 mb-5" id="leaderboardContainer"></div>
+        </div>
+
+        <div id="activeTestSection" class="d-none">
+            <div class="card shadow-sm border-0 rounded-4 p-3 mb-3 sticky-top bg-white border-top border-warning border-4">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h6 class="fw-bold text-truncate mb-0" id="activeTestTitle">Test</h6>
+                    <div class="badge bg-dark fs-5 px-3 py-2 rounded-pill font-monospace" id="timeRemaining">00:00</div>
+                </div>
+                <div class="progress mt-2" style="height: 6px;"><div id="testProgressBar" class="progress-bar bg-primary" style="width: 0%"></div></div>
+            </div>
+
+            <div class="card shadow-sm border-0 rounded-4 p-4 text-center bg-white">
+                <h5 class="text-muted fw-bold mb-3" id="questionNumberHeader">Question 1</h5>
+                
+                <button id="dictateBtn" class="btn btn-outline-info rounded-circle mb-3 shadow-sm" style="width:50px; height:50px;" title="Dictate Numbers">
+                    <i class="fa-solid fa-volume-high fs-4"></i>
+                </button>
+
+                <div class="abacus-question border-bottom pb-2 mb-4 text-dark font-monospace" id="verticalNumbersDisplay"></div>
+                <div class="mb-4">
+                    <input type="number" class="form-control form-control-lg answer-box" id="paginatedAnswerInput" placeholder="=" autocomplete="off">
+                </div>
+                <button type="button" class="btn btn-primary btn-lg w-100 fw-bold rounded-pill shadow-sm" id="nextQuestionBtn">Next</button>
+            </div>
+        </div>
+
+        <div id="resultsSection" class="d-none text-center mt-5">
+            <div class="card shadow border-0 rounded-4 p-4 mx-auto bg-white" style="max-width: 400px;">
+                <h3 class="fw-bold text-dark mb-2"><i class="fa-solid fa-flag-checkered me-2"></i>Finished!</h3>
+                <div class="bg-light rounded-3 p-3 my-3">
+                    <span class="text-muted small fw-bold">Score</span>
+                    <h1 class="display-3 fw-bold text-success mb-0" id="finalScore">0 / 0</h1>
+                </div>
+                <button class="btn btn-primary w-100 fw-bold rounded-pill py-2" id="returnHomeBtn">Dashboard</button>
+            </div>
+        </div>
+
+    </div>
+    <script src="student.js"></script>
+</body>
+</html>
