@@ -18,7 +18,7 @@ document.getElementById('createStudentForm').addEventListener('submit', async (e
     e.preventDefault();
     const nameInput = document.getElementById('studentName').value;
     try {
-        const res = await fetch('http://127.0.0.1:5000/api/admin/students', {
+        const res = await fetch('https://forms-xg9n.onrender.com/api/admin/students', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
             body: JSON.stringify({ name: nameInput })

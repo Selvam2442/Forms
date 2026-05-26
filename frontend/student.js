@@ -39,7 +39,7 @@ document.getElementById('dictateBtn').addEventListener('click', () => {
 // ==========================================
 async function fetchDashboardEcosystem() {
     try {
-        const testRes = await fetch('http://127.0.0.1:5000/api/student/tests', { headers: { 'Authorization': `Bearer ${token}` }});
+        const testRes = await fetch('https://forms-xg9n.onrender.com/api/student/tests', { headers: { 'Authorization': `Bearer ${token}` }});
         if (testRes.ok) {
             const tests = await testRes.json();
             const container = document.getElementById('testsContainer');
@@ -63,7 +63,7 @@ async function fetchDashboardEcosystem() {
             });
         }
 
-        const histRes = await fetch('http://127.0.0.1:5000/api/student/history', { headers: { 'Authorization': `Bearer ${token}` }});
+        const histRes = await fetch('https://forms-xg9n.onrender.com/api/student/history', { headers: { 'Authorization': `Bearer ${token}` }});
         if (histRes.ok) {
             const history = await histRes.json();
             const histContainer = document.getElementById('historyContainer');
@@ -88,7 +88,7 @@ async function fetchDashboardEcosystem() {
         }
 
         // Grouped Leaderboard
-        const leadRes = await fetch('http://127.0.0.1:5000/api/student/leaderboard', { headers: { 'Authorization': `Bearer ${token}` }});
+        const leadRes = await fetch('https://forms-xg9n.onrender.com/api/student/leaderboard', { headers: { 'Authorization': `Bearer ${token}` }});
         if (leadRes.ok) {
             const groupedLeaders = await leadRes.json();
             const container = document.getElementById('leaderboardContainer');
@@ -167,7 +167,7 @@ function startCountdownTimer(minutes) {
 async function executeFinalTransmission() {
     clearInterval(timerInterval);
     try {
-        const res = await fetch('http://127.0.0.1:5000/api/student/submit', {
+        const res = await fetch('https://forms-xg9n.onrender.com/api/student/submit', {
             method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
             body: JSON.stringify({ testId: currentTestId, startTime: testStartTime, cheatWarnings, answers: studentSavedAnswers })
         });
@@ -187,7 +187,7 @@ async function executeFinalTransmission() {
 }
 
 window.triggerRetakeRequest = async function(id) {
-    await fetch(`http://127.0.0.1:5000/api/student/submissions/${id}/request-retake`, { method: 'PUT', headers: { 'Authorization': `Bearer ${token}` }});
+    await fetch(`https://forms-xg9n.onrender.com/api/student/submissions/${id}/request-retake`, { method: 'PUT', headers: { 'Authorization': `Bearer ${token}` }});
     fetchDashboardEcosystem();
 };
 
