@@ -30,6 +30,11 @@
 </head>
 
 <body class="bg-light">
+    <div id="globalLoader" class="position-fixed w-100 h-100 flex-column align-items-center justify-content-center bg-light" style="z-index: 9999; top: 0; left: 0; transition: opacity 0.5s ease; display: flex;">
+        <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status"></div>
+        <h4 class="text-primary fw-bold mb-2">Loading Your Portal...</h4>
+        <p class="text-muted small text-center px-4">(Connecting to database...)</p>
+    </div>
 
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
         <div class="container-fluid px-3">

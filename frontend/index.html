@@ -36,6 +36,11 @@
 </head>
 
 <body>
+    <div id="globalLoader" class="position-fixed w-100 h-100 flex-column align-items-center justify-content-center bg-light d-none" style="z-index: 9999; top: 0; left: 0; transition: opacity 0.5s ease; display: flex;">
+        <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status"></div>
+        <h4 class="text-primary fw-bold mb-2">Authenticating...</h4>
+        <p class="text-muted small text-center px-4">(Waking up secure servers. This may take up to 30 seconds on the first login. Please don't refresh!)</p>
+    </div>
     <div class="card border-0 shadow-lg p-4 login-card rounded-4">
         <div class="text-center mb-4">
             <h2 class="fw-bold text-primary"><i class="fa-solid fa-calculator me-2"></i>Abacus LMS</h2>
@@ -70,19 +75,34 @@
         </div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
+<script>
         if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js'); }
         const BASE_URL = 'https://forms-xg9n.onrender.com';
+        
         async function handleLogin(e, role) {
             e.preventDefault();
+            
+            // 🔥 SHOW LOADER
+            document.getElementById('globalLoader').classList.remove('d-none');
+            
             const identifier = role === 'student' ? document.getElementById('stuRollNumber').value : document.getElementById('adminUser').value;
             const secret = role === 'student' ? document.getElementById('stuPin').value : document.getElementById('adminPass').value;
+            
             try {
                 const res = await fetch(`${BASE_URL}/api/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ role, identifier, secret }) });
                 const data = await res.json();
-                if (res.ok) { localStorage.setItem('token', data.token); window.location.href = role === 'student' ? 'student.html' : 'admin.html'; }
-                else { alert(data.error); }
-            } catch (err) { alert("Server error."); }
+                if (res.ok) { 
+                    localStorage.setItem('token', data.token); 
+                    window.location.href = role === 'student' ? 'student.html' : 'admin.html'; 
+                } else { 
+                    // 🔥 HIDE LOADER IF ERROR
+                    document.getElementById('globalLoader').classList.add('d-none');
+                    alert(data.error); 
+                }
+            } catch (err) { 
+                document.getElementById('globalLoader').classList.add('d-none');
+                alert("Server connection error. Please try again."); 
+            }
         }
         document.getElementById('studentLoginForm').addEventListener('submit', (e) => handleLogin(e, 'student'));
         document.getElementById('adminLoginForm').addEventListener('submit', (e) => handleLogin(e, 'admin'));

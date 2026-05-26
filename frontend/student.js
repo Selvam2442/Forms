@@ -20,11 +20,22 @@ try {
 let globalTests = [], globalSubmissions = [], activeTest = null, countdownInterval = null, testStartTime = null; 
 
 async function loadDashboard() {
-    const testRes = await fetch(`${BASE_URL}/api/student/tests`, { headers: { 'Authorization': `Bearer ${token}` }});
-    if (testRes.ok) globalTests = await testRes.json();
-    const subRes = await fetch(`${BASE_URL}/api/student/my-submissions`, { headers: { 'Authorization': `Bearer ${token}` }});
-    if (subRes.ok) globalSubmissions = await subRes.json();
-    renderDashboard();
+    try {
+        const testRes = await fetch(`${BASE_URL}/api/student/tests`, { headers: { 'Authorization': `Bearer ${token}` }});
+        if (testRes.ok) globalTests = await testRes.json();
+        
+        const subRes = await fetch(`${BASE_URL}/api/student/my-submissions`, { headers: { 'Authorization': `Bearer ${token}` }});
+        if (subRes.ok) globalSubmissions = await subRes.json();
+        
+        renderDashboard();
+    } catch (e) {
+        console.error("Error loading dashboard data");
+    } finally {
+        // 🔥 FADE OUT LOADER WHEN FINISHED
+        const loader = document.getElementById('globalLoader');
+        loader.style.opacity = '0';
+        setTimeout(() => loader.classList.add('d-none'), 500);
+    }
 }
 
 function renderDashboard() {
