@@ -14,6 +14,10 @@
         .nav-tabs .nav-link { border: none; border-bottom: 3px solid transparent; color: #6c757d; padding: 12px 20px; }
         .nav-tabs .nav-link.active { border-color: #0d6efd; color: #0d6efd; background: transparent; }
         .nav-tabs::-webkit-scrollbar { display: none; } 
+        /* Added Student UI Styles for the Preview Modal */
+        .custom-radio .form-check-input { width: 1.5em; height: 1.5em; cursor: pointer; }
+        .custom-radio .form-check-label { margin-left: 10px; cursor: pointer; padding-top: 3px; }
+        .abacus-numbers { letter-spacing: 2px; line-height: 2.2; }
     </style>
 </head>
 <body class="bg-light">
@@ -179,10 +183,10 @@
         <div class="modal-dialog">
             <div class="modal-content border-0 shadow">
                 <div class="modal-header bg-dark text-white border-0">
-                    <h5 class="modal-title fw-bold"><i class="fa-solid fa-eye me-2"></i>Student Preview</h5>
+                    <h5 class="modal-title fw-bold"><i class="fa-solid fa-eye me-2"></i>Test Preview</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body bg-light text-center p-5" id="previewModalBody">
+                <div class="modal-body bg-light p-4" id="previewModalBody">
                     </div>
             </div>
         </div>

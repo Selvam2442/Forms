@@ -1,13 +1,17 @@
 const token = localStorage.getItem('token');
 const BASE_URL = 'https://forms-xg9n.onrender.com';
 if (!token) window.location.href = 'index.html';
-document.getElementById('logoutBtn').addEventListener('click', () => { localStorage.clear(); window.location.href = 'index.html'; });
+
+document.getElementById('logoutBtn').addEventListener('click', () => { 
+    localStorage.clear(); 
+    window.location.href = 'index.html'; 
+});
 
 let globalStudents = [], globalManagedTests = [], globalSubmissions = [];
 let statusChartObj = null, scoreChartObj = null;
 window.visiblePendingIds = []; 
 
-// STUDENT MANAGEMENT (Unchanged)
+// STUDENT MANAGEMENT 
 if (document.getElementById('createStudentForm')) {
     document.getElementById('createStudentForm').addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -49,7 +53,7 @@ window.shareTestToWhatsApp = function(testTitle) {
 };
 
 // ==========================================
-// 🔥 NEW QUIZ BUILDER LOGIC (MUL/DIV)
+// QUIZ BUILDER LOGIC 
 // ==========================================
 let isDraftMode = false;
 function setMinDateLimits() {
@@ -59,10 +63,7 @@ function setMinDateLimits() {
     if (fromInput) fromInput.min = currentDateTime; if (dueInput) dueInput.min = currentDateTime;
 }
 
-// Re-render questions if test type changes
-document.getElementById('testTypeSelect')?.addEventListener('change', () => {
-    document.getElementById('questionsContainer').innerHTML = ''; addQuestionCard();
-});
+document.getElementById('testTypeSelect')?.addEventListener('change', () => { document.getElementById('questionsContainer').innerHTML = ''; addQuestionCard(); });
 
 function addQuestionCard(existingNumbers = []) {
     const container = document.getElementById('questionsContainer'); if (!container) return;
@@ -154,33 +155,76 @@ window.cancelEditMode = function() {
     document.getElementById('cancelEditBtn').classList.add('d-none'); document.getElementById('btnDraft').innerText = "Save Draft"; document.getElementById('btnPublish').innerText = "Publish Live";
 }
 
-// 🔥 NEW: PREVIEW TEST FUNCTION
+// ==========================================
+// 🔥 INTERACTIVE TEST PREVIEW
+// ==========================================
+let previewActiveTest = null;
+let previewCurrentIndex = 0;
+
 window.previewTest = function(id) {
-    const test = globalManagedTests.find(t => t._id === id); if(!test) return;
+    previewActiveTest = globalManagedTests.find(t => t._id === id); 
+    if(!previewActiveTest) return;
+    previewCurrentIndex = 0;
+    new bootstrap.Modal(document.getElementById('previewModal')).show();
+    renderPreviewQuestion();
+};
+
+window.renderPreviewQuestion = function() {
+    const q = previewActiveTest.questions[previewCurrentIndex];
+    const total = previewActiveTest.questions.length;
     const body = document.getElementById('previewModalBody');
-    const q = test.questions[0]; // Just show the first question
-    let formatHtml = '';
     
-    if(!test.testType || test.testType === 'addition') {
+    let formatHtml = '';
+    if(!previewActiveTest.testType || previewActiveTest.testType === 'addition') {
         const formattedNumbers = q.numbersArray.map((n) => n >= 0 ? `+${n}` : n).join('<br>');
-        formatHtml = `<div class="text-end px-4 border-bottom border-dark border-3 pb-2 d-inline-block"><h1 class="abacus-numbers fw-bold text-dark display-4 mb-0" style="letter-spacing: 4px; line-height: 1.6;">${formattedNumbers}</h1></div>`;
+        formatHtml = `<div class="text-end px-4 border-bottom border-dark border-3 pb-2 d-inline-block" style="min-width: 150px;"><h1 class="abacus-numbers fw-bold text-dark display-4 mb-0" style="letter-spacing: 4px; line-height: 1.6;">${formattedNumbers}</h1></div>`;
     } else {
-        const sign = test.testType === 'multiplication' ? '×' : '÷';
-        formatHtml = `<h1 class="fw-bold text-dark display-3 mb-0">${q.numbersArray[0]} <span class="text-primary">${sign}</span> ${q.numbersArray[1]}</h1>`;
+        const sign = previewActiveTest.testType === 'multiplication' ? '×' : '÷';
+        formatHtml = `<h1 class="fw-bold text-dark display-1 mb-0">${q.numbersArray[0]} <span class="text-primary">${sign}</span> ${q.numbersArray[1]}</h1>`;
     }
 
-    body.innerHTML = `
-        <div class="badge bg-danger fs-6 shadow-sm mb-4"><i class="fa-solid fa-clock me-1"></i>${test.timeLimitMinutes}:00</div>
-        <div class="card bg-body-secondary border-0 p-4 rounded-4 shadow-sm mb-4 d-flex flex-column align-items-center">
+    let html = `
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <span class="badge bg-secondary fs-6 shadow-sm"><i class="fa-solid fa-clock me-1"></i>Preview Mode</span>
+            <span class="badge bg-primary fs-6 shadow-sm">Question ${previewCurrentIndex + 1} of ${total}</span>
+        </div>
+        
+        <div class="card bg-body-secondary border-0 p-4 rounded-4 shadow-sm mb-4 d-flex flex-column align-items-center justify-content-center" style="min-height: 200px;">
             ${formatHtml}
         </div>
-        <div class="row justify-content-center">
+        
+        <div class="row justify-content-center mb-4">
             <div class="col-12 text-start">
-                <label class="form-check custom-radio mb-3 p-3 border rounded-3 bg-white shadow-sm d-flex align-items-center"><input class="form-check-input fs-4 m-0" type="radio" checked><span class="fs-4 fw-bold text-dark ms-3">Option 1</span></label>
-                <label class="form-check custom-radio mb-3 p-3 border rounded-3 bg-white shadow-sm d-flex align-items-center"><input class="form-check-input fs-4 m-0" type="radio"><span class="fs-4 fw-bold text-dark ms-3">Option 2</span></label>
+                <label class="form-check custom-radio mb-2 p-3 border rounded-3 bg-white shadow-sm d-flex align-items-center"><input class="form-check-input fs-4 m-0" type="radio" name="prev_opt" checked><span class="fs-4 fw-bold text-dark ms-3">Option 1</span></label>
+                <label class="form-check custom-radio mb-2 p-3 border rounded-3 bg-white shadow-sm d-flex align-items-center"><input class="form-check-input fs-4 m-0" type="radio" name="prev_opt"><span class="fs-4 fw-bold text-dark ms-3">Option 2</span></label>
             </div>
-        </div>`;
-    new bootstrap.Modal(document.getElementById('previewModal')).show();
+        </div>
+        <div class="d-flex gap-2 mt-4">
+    `;
+
+    if (previewCurrentIndex > 0) {
+        html += `<button class="btn btn-outline-secondary btn-lg w-50 fw-bold shadow-sm" onclick="changePreviewQuestion(-1)"><i class="fa-solid fa-arrow-left me-2"></i>Previous</button>`;
+    } else {
+        html += `<button class="btn btn-outline-secondary btn-lg w-50 fw-bold shadow-sm disabled" style="opacity:0.4;">Previous</button>`;
+    }
+
+    if (previewCurrentIndex < total - 1) {
+        html += `<button class="btn btn-primary btn-lg w-50 fw-bold shadow-sm" onclick="changePreviewQuestion(1)">Next<i class="fa-solid fa-arrow-right ms-2"></i></button>`;
+    } else {
+        html += `<button class="btn btn-success btn-lg w-50 fw-bold shadow-sm" onclick="closePreviewModal()"><i class="fa-solid fa-times me-2"></i>Close Preview</button>`;
+    }
+
+    html += `</div>`;
+    body.innerHTML = html;
+};
+
+window.changePreviewQuestion = function(dir) {
+    previewCurrentIndex += dir;
+    renderPreviewQuestion();
+};
+
+window.closePreviewModal = function() {
+    bootstrap.Modal.getInstance(document.getElementById('previewModal')).hide();
 };
 
 async function loadTests() {
@@ -216,7 +260,9 @@ async function loadTests() {
 window.toggleTest = async function(id) { await fetch(`${BASE_URL}/api/admin/tests/${id}/toggle`, { method: 'PUT', headers: { 'Authorization': `Bearer ${token}` }}); loadTests(); };
 window.deleteTest = async function(id) { if (!confirm("Delete test?")) return; await fetch(`${BASE_URL}/api/admin/tests/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` }}); loadTests(); };
 
-// SUBMISSIONS & CHARTS (Unchanged)
+// ==========================================
+// 🔥 RESTORED SUBMISSIONS & CHARTS LOGIC
+// ==========================================
 async function renderReviewEcosystem() {
     try {
         const res = await fetch(`${BASE_URL}/api/admin/submissions`, { headers: { 'Authorization': `Bearer ${token}` }});
@@ -235,9 +281,95 @@ async function renderReviewEcosystem() {
         }
     } catch (e) {}
 }
-function applyFilters() { /* ... unchanged rendering logic ... */ }
-function renderCharts(submissions) { /* ... unchanged charts logic ... */ }
-const dashboardTab = document.getElementById('dashboard-tab'); if (dashboardTab) dashboardTab.addEventListener('shown.bs.tab', function () { renderCharts(globalSubmissions); });
+
+function applyFilters() {
+    const fName = document.getElementById('filterStudentName');
+    const fStatus = document.getElementById('filterStatus');
+    const fTest = document.getElementById('filterTestName');
+    
+    if (!fName || !fStatus || !fTest) return;
+    
+    const filtered = globalSubmissions.filter(sub => 
+        (sub.studentName || "Unknown").toLowerCase().includes(fName.value.toLowerCase()) && 
+        (fStatus.value === 'all' || sub.status === fStatus.value) && 
+        (fTest.value === 'all' || (sub.testId && sub.testId.title === fTest.value))
+    );
+    
+    const container = document.getElementById('submissionsContainer'); 
+    if (!container) return;
+    
+    container.innerHTML = ''; 
+    window.visiblePendingIds = []; 
+    
+    filtered.forEach(sub => {
+        let stat = `<span class="badge bg-success">Approved</span>`;
+        let act = `<div class="bg-body-secondary p-2 rounded small mt-2 fw-bold text-muted">Notes: ${sub.adminFeedback || ''}</div>`;
+        
+        if (sub.status === 'pending_review') { 
+            window.visiblePendingIds.push(sub._id); 
+            stat = `<span class="badge bg-warning text-dark">Awaiting</span>`; 
+            act = `<button class="btn btn-primary btn-sm w-100 fw-bold mt-2" onclick="processApproval('${sub._id}')">Approve</button>`; 
+        } else if (sub.status === 'retake_requested') { 
+            stat = `<span class="badge bg-info text-dark">Retake Req</span>`; 
+            act = `<button class="btn btn-info btn-sm w-100 text-white fw-bold mt-2" onclick="forceResetRetake('${sub._id}')">Grant Retake</button>`; 
+        }
+        
+        const timeTaken = sub.timeTakenSeconds ? `${Math.floor(sub.timeTakenSeconds / 60)}m ${sub.timeTakenSeconds % 60}s` : 'Unknown Time';
+        
+        container.innerHTML += `
+            <div class="col">
+                <div class="card shadow-sm border-0 h-100 p-3 bg-body">
+                    <div class="d-flex justify-content-between mb-1"><span class="fw-bold small">${sub.studentName||"Unknown"}</span>${stat}</div>
+                    <div class="small text-muted mb-1">${sub.testId ? sub.testId.title : 'Deleted Test'} <span class="ms-2 badge bg-body-secondary text-body border"><i class="fa-solid fa-stopwatch me-1"></i>${timeTaken}</span></div>
+                    <div class="fw-bold text-primary mb-2">Score: ${sub.finalScore}</div>
+                    ${act}
+                    <div class="d-flex gap-2 mt-2">
+                        <button class="btn btn-outline-dark btn-sm w-100 fw-bold" onclick="viewDetails('${sub._id}')"><i class="fa-solid fa-magnifying-glass me-1"></i>Review</button>
+                        <button class="btn btn-outline-danger btn-sm w-100 fw-bold" onclick="forceResetRetake('${sub._id}')"><i class="fa-solid fa-eraser me-1"></i>Reset</button>
+                    </div>
+                </div>
+            </div>`;
+    });
+}
+
+if (document.getElementById('filterStudentName')) document.getElementById('filterStudentName').addEventListener('input', applyFilters); 
+if (document.getElementById('filterStatus')) document.getElementById('filterStatus').addEventListener('change', applyFilters); 
+if (document.getElementById('filterTestName')) document.getElementById('filterTestName').addEventListener('change', applyFilters);
+
+if (document.getElementById('bulkApproveBtn')) { 
+    document.getElementById('bulkApproveBtn').addEventListener('click', async () => { 
+        if (!window.visiblePendingIds.length) return alert("No pending submissions to approve."); 
+        if (!confirm(`Approve all ${window.visiblePendingIds.length} visible submissions?`)) return; 
+        await fetch(`${BASE_URL}/api/admin/submissions/approve-bulk`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ submissionIds: window.visiblePendingIds }) }); 
+        renderReviewEcosystem(); 
+    }); 
+}
+
+window.processApproval = async function(id) { const note = prompt("Enter grading notes (optional):", "Excellent work!"); if (note === null) return; await fetch(`${BASE_URL}/api/admin/submissions/${id}/approve`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ feedback: note })}); renderReviewEcosystem(); };
+window.forceResetRetake = async function(id) { if (!confirm("Wipe this submission and allow retake?")) return; await fetch(`${BASE_URL}/api/admin/submissions/${id}/reset`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` }}); renderReviewEcosystem(); };
+
+window.viewDetails = function(subId) {
+    const sub = globalSubmissions.find(s => s._id === subId); if (!sub) return;
+    document.getElementById('reviewStudentName').innerText = sub.studentName || 'Unknown Student'; document.getElementById('reviewTestName').innerText = sub.testId ? sub.testId.title : 'Unknown Test';
+    const tbody = document.getElementById('reviewTableBody'); if (!tbody) return; tbody.innerHTML = '';
+    if (sub.answers) { sub.answers.forEach((ans, index) => { tbody.innerHTML += `<tr class="${ans.isCorrect ? '' : 'table-danger'}"><td class="fw-bold text-muted">${index + 1}</td><td class="small">${ans.numbersArray ? ans.numbersArray.join(', ') : 'N/A'}</td><td class="fw-bold fs-5 text-${ans.isCorrect ? 'success' : 'danger'}">${ans.studentAnswer}</td><td class="fw-bold fs-5">${ans.correctAnswer}</td><td>${ans.isCorrect ? '<i class="fa-solid fa-circle-check text-success fs-5"></i>' : '<i class="fa-solid fa-circle-xmark text-danger fs-5"></i>'}</td></tr>`; }); }
+    new bootstrap.Modal(document.getElementById('reviewModal')).show();
+}
+
+function renderCharts(submissions) {
+    if (!document.getElementById('statusChart') || !document.getElementById('scoreChart')) return; 
+    let pending = 0, graded = 0; const scoresByTest = {};
+    submissions.forEach(sub => { if (sub.status === 'pending_review' || sub.status === 'retake_requested') pending++; else graded++; const testName = sub.testId ? sub.testId.title : 'Deleted Tests'; if (!scoresByTest[testName]) scoresByTest[testName] = { total: 0, count: 0 }; scoresByTest[testName].total += sub.finalScore; scoresByTest[testName].count += 1; });
+    
+    if(statusChartObj) statusChartObj.destroy(); if(scoreChartObj) scoreChartObj.destroy();
+
+    statusChartObj = new Chart(document.getElementById('statusChart'), { type: 'doughnut', data: { labels: ['Needs Review', 'Graded'], datasets: [{ data: [pending, graded], backgroundColor: ['#ffc107', '#198754'] }] }, options: { responsive: true, maintainAspectRatio: false } });
+    const testLabels = Object.keys(scoresByTest); const avgScores = testLabels.map(t => scoresByTest[t].total / scoresByTest[t].count);
+    scoreChartObj = new Chart(document.getElementById('scoreChart'), { type: 'bar', data: { labels: testLabels, datasets: [{ label: 'Average Score', data: avgScores, backgroundColor: '#0d6efd' }] }, options: { responsive: true, maintainAspectRatio: false } });
+}
+
+const dashboardTab = document.getElementById('dashboard-tab'); 
+if (dashboardTab) dashboardTab.addEventListener('shown.bs.tab', function () { renderCharts(globalSubmissions); });
 
 async function initializeAdminDashboard() {
     try { setMinDateLimits(); await Promise.all([loadStudents(), loadTests(), renderReviewEcosystem()]); } 
