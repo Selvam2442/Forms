@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 
 const testSchema = new mongoose.Schema({
     title: String,
+    testType: { type: String, default: 'addition' }, // 🔥 NEW: addition, multiplication, or division
     timeLimitMinutes: Number,
     isActive: { type: Boolean, default: true },
     availableFrom: { type: Date, default: null }, 
@@ -11,7 +12,7 @@ const testSchema = new mongoose.Schema({
         numbersArray: [Number],
         correctAnswer: Number
     }],
-    assignedTo: { type: [String], default: [] }, // 🔥 NEW: Empty means "Everyone", otherwise contains Roll Numbers
+    assignedTo: { type: [String], default: [] },
     createdAt: { type: Date, default: Date.now }
 });
 

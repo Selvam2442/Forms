@@ -45,15 +45,47 @@ router.delete('/students/:rollNumber', async (req, res) => {
 });
 
 // TESTS
+// TESTS
 router.post('/tests', async (req, res) => {
     try {
-        const { title, timeLimitMinutes, questions, isActive, availableFrom, dueDate, assignedTo } = req.body;
-        const processedQuestions = questions.map((q, index) => ({ questionId: `Q${index + 1}`, numbersArray: q.numbersArray, correctAnswer: q.numbersArray.reduce((sum, num) => sum + num, 0) }));
-        const newTest = new Test({ title, timeLimitMinutes, assignedTo: assignedTo || [], questions: processedQuestions, isActive, availableFrom: availableFrom ? new Date(availableFrom) : null, dueDate: dueDate ? new Date(dueDate) : null });
+        const { title, testType, timeLimitMinutes, questions, isActive, availableFrom, dueDate, assignedTo } = req.body;
+        
+        // 🔥 NEW MATH ENGINE
+        const processedQuestions = questions.map((q, index) => {
+            let correctAns = 0;
+            if (testType === 'multiplication') correctAns = q.numbersArray[0] * q.numbersArray[1];
+            else if (testType === 'division') correctAns = q.numbersArray[0] / q.numbersArray[1];
+            else correctAns = q.numbersArray.reduce((sum, num) => sum + num, 0);
+            
+            return { questionId: `Q${index + 1}`, numbersArray: q.numbersArray, correctAnswer: correctAns };
+        });
+
+        const newTest = new Test({ title, testType: testType || 'addition', timeLimitMinutes, assignedTo: assignedTo || [], questions: processedQuestions, isActive, availableFrom: availableFrom ? new Date(availableFrom) : null, dueDate: dueDate ? new Date(dueDate) : null });
         await newTest.save(); res.status(201).json({ message: "Test saved!", test: newTest });
     } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
+router.put('/tests/:id', async (req, res) => {
+    try {
+        const { title, testType, timeLimitMinutes, questions, isActive, availableFrom, dueDate, assignedTo } = req.body;
+        
+        // 🔥 NEW MATH ENGINE
+        const processedQuestions = questions.map((q, index) => {
+            let correctAns = 0;
+            if (testType === 'multiplication') correctAns = q.numbersArray[0] * q.numbersArray[1];
+            else if (testType === 'division') correctAns = q.numbersArray[0] / q.numbersArray[1];
+            else correctAns = q.numbersArray.reduce((sum, num) => sum + num, 0);
+            
+            return { questionId: `Q${index + 1}`, numbersArray: q.numbersArray, correctAnswer: correctAns };
+        });
+        
+        await Test.findByIdAndUpdate(req.params.id, {
+            title, testType: testType || 'addition', timeLimitMinutes, questions: processedQuestions, isActive, assignedTo: assignedTo || [],
+            availableFrom: availableFrom ? new Date(availableFrom) : null, dueDate: dueDate ? new Date(dueDate) : null
+        });
+        res.status(200).json({ message: "Test updated successfully!" });
+    } catch (error) { res.status(500).json({ error: "Server error updating test." }); }
+});
 // 🔥 NEW: EDIT TEST ROUTE
 router.put('/tests/:id', async (req, res) => {
     try {

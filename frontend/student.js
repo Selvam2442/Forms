@@ -11,12 +11,38 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
 let globalTests = [];
 let globalSubmissions = [];
 
-// Pagination State Variables
+// Pagination State
 let activeTest = null;
 let currentQuestionIndex = 0;
 let studentAnswers = {}; 
 let timerInterval = null;
 let timeTakenSeconds = 0;
+
+// 🔥 NATIVE AUDIO ENGINE (Zero external files needed)
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+function playAudioClick() {
+    if(audioCtx.state === 'suspended') audioCtx.resume();
+    const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.type = 'triangle'; osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.05);
+    gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.05);
+    osc.start(); osc.stop(audioCtx.currentTime + 0.05);
+}
+function playAudioSuccess() {
+    if(audioCtx.state === 'suspended') audioCtx.resume();
+    [440, 554, 659].forEach((freq, i) => { // A Major chord arpeggio
+        setTimeout(() => {
+            const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.type = 'sine'; osc.frequency.value = freq;
+            gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.5);
+        }, i * 150);
+    });
+}
 
 // Initialize Dashboard
 async function loadDashboard() {
@@ -51,11 +77,12 @@ function renderDashboard() {
     globalTests.forEach(test => {
         if (!completedTestIds.includes(test._id)) {
             testsShown++;
+            const icon = test.testType === 'multiplication' ? '✖️' : test.testType === 'division' ? '➗' : '➕';
             availableContainer.innerHTML += `
                 <div class="card shadow-sm border-0 mb-3 bg-body rounded-3">
                     <div class="card-body d-flex justify-content-between align-items-center">
                         <div>
-                            <h6 class="fw-bold mb-1 text-primary">${test.title}</h6>
+                            <h6 class="fw-bold mb-1 text-primary">${icon} ${test.title}</h6>
                             <small class="text-muted"><i class="fa-solid fa-list-ol me-1"></i>${test.questions.length} Qs | <i class="fa-solid fa-stopwatch me-1"></i>${test.timeLimitMinutes}m</small>
                         </div>
                         <button class="btn btn-primary btn-sm fw-bold px-3 shadow-sm rounded-pill" onclick="startTest('${test._id}')">Start</button>
@@ -106,18 +133,23 @@ window.startTest = function(testId) {
     currentQuestionIndex = 0;
     studentAnswers = {};
 
-    // Generate Multiple Choice Options once for the whole test
+    // Generate Multiple Choice Options once
     activeTest.questions.forEach(q => {
         if (!q.options) {
-            // Calculate real answer
-            const realAns = q.numbersArray.reduce((a, b) => a + b, 0);
+            // Reconstruct correct answer if not provided by backend payload
+            let realAns = 0;
+            if (activeTest.testType === 'multiplication') realAns = q.numbersArray[0] * q.numbersArray[1];
+            else if (activeTest.testType === 'division') realAns = q.numbersArray[0] / q.numbersArray[1];
+            else realAns = q.numbersArray.reduce((a, b) => a + b, 0);
+
             const opts = new Set([realAns]);
-            // Generate 3 fake answers closely related to the real one
             while(opts.size < 4) {
                 const offset = [1, -1, 10, -10, 5, -5][Math.floor(Math.random() * 6)];
-                opts.add(realAns + offset);
+                let fake = realAns + offset;
+                // Avoid decimals in division fake options
+                if (activeTest.testType === 'division') fake = Math.floor(fake);
+                opts.add(fake);
             }
-            // Shuffle the 4 options
             q.options = Array.from(opts).sort(() => Math.random() - 0.5);
         }
     });
@@ -134,12 +166,7 @@ window.startTest = function(testId) {
         totalSeconds--; timeTakenSeconds++;
         let m = Math.floor(totalSeconds / 60); let s = totalSeconds % 60;
         document.getElementById('timerDisplay').innerHTML = `<i class="fa-solid fa-clock me-1"></i>${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-        
-        if (totalSeconds <= 0) { 
-            clearInterval(timerInterval); 
-            alert("Time is up! Auto-submitting your test."); 
-            submitTest(); 
-        }
+        if (totalSeconds <= 0) { clearInterval(timerInterval); alert("Time is up! Auto-submitting your test."); submitTest(); }
     }, 1000);
 
     renderQuestion();
@@ -148,22 +175,23 @@ window.startTest = function(testId) {
 window.renderQuestion = function() {
     const q = activeTest.questions[currentQuestionIndex];
     const total = activeTest.questions.length;
-    
-    // Check if they already selected an answer
     const savedAnswer = studentAnswers[q.questionId] !== undefined ? studentAnswers[q.questionId] : null;
 
     document.getElementById('testProgressBar').style.width = `${((currentQuestionIndex) / total) * 100}%`;
 
-    // Format numbers with proper right-alignment and plus signs
-    const formattedNumbers = q.numbersArray.map((n) => {
-        return n >= 0 ? `+${n}` : n; // ALL positive numbers get a '+' now
-    }).join('<br>');
+    // 🔥 FORMAT THE QUESTION UI BASED ON TYPE
+    let formatHtml = '';
+    if (!activeTest.testType || activeTest.testType === 'addition') {
+        const formattedNumbers = q.numbersArray.map((n) => n >= 0 ? `+${n}` : n).join('<br>');
+        formatHtml = `<div class="text-end px-4 border-bottom border-dark border-3 pb-2 d-inline-block" style="min-width: 150px;"><h1 class="abacus-numbers fw-bold text-dark display-4 mb-0" style="letter-spacing: 4px; line-height: 1.6;">${formattedNumbers}</h1></div>`;
+    } else {
+        const sign = activeTest.testType === 'multiplication' ? '×' : '÷';
+        formatHtml = `<h1 class="fw-bold text-dark display-1 mb-0">${q.numbersArray[0]} <span class="text-primary">${sign}</span> ${q.numbersArray[1]}</h1>`;
+    }
 
-    // 🔥 Build the huge tappable radio buttons
     const optionsHtml = q.options.map((opt, i) => `
-        <label class="form-check custom-radio mb-3 p-3 border rounded-3 bg-white shadow-sm d-flex align-items-center w-100" style="cursor:pointer; transition: 0.2s;">
-            <input class="form-check-input fs-4 m-0" type="radio" name="q_answer" value="${opt}" 
-                ${savedAnswer == opt ? 'checked' : ''} onchange="saveAnswer('${q.questionId}', this.value)">
+        <label class="form-check custom-radio mb-3 p-3 border rounded-3 bg-white shadow-sm d-flex align-items-center w-100" style="cursor:pointer; transition: 0.2s;" onclick="playAudioClick()">
+            <input class="form-check-input fs-4 m-0" type="radio" name="q_answer" value="${opt}" ${savedAnswer == opt ? 'checked' : ''} onchange="saveAnswer('${q.questionId}', this.value)">
             <span class="fs-4 fw-bold text-dark ms-3">${opt}</span>
         </label>
     `).join('');
@@ -171,91 +199,49 @@ window.renderQuestion = function() {
     let html = `
         <div class="text-center mb-4">
             <span class="badge bg-secondary mb-3 fs-6 rounded-pill px-3 py-2 shadow-sm">Question ${currentQuestionIndex + 1} of ${total}</span>
-            
-            <div class="card bg-body-secondary border-0 p-4 rounded-4 shadow-sm mb-4 d-flex flex-column align-items-center">
-                <div class="text-end px-4 border-bottom border-dark border-3 pb-2" style="min-width: 150px;">
-                    <h1 class="abacus-numbers fw-bold text-dark display-4 mb-0" style="letter-spacing: 4px; line-height: 1.6;">
-                        ${formattedNumbers}
-                    </h1>
-                </div>
+            <div class="card bg-body-secondary border-0 p-4 rounded-4 shadow-sm mb-4 d-flex flex-column align-items-center justify-content-center" style="min-height: 200px;">
+                ${formatHtml}
             </div>
-            
-            <div class="row justify-content-center">
-                <div class="col-12 col-sm-8 text-start">
-                    ${optionsHtml}
-                </div>
-            </div>
+            <div class="row justify-content-center"><div class="col-12 col-sm-8 text-start">${optionsHtml}</div></div>
         </div>
-        
         <div class="d-flex gap-2 mt-4">
     `;
 
-    if (currentQuestionIndex > 0) {
-        html += `<button class="btn btn-outline-secondary btn-lg w-50 fw-bold shadow-sm" onclick="changeQuestion(-1)"><i class="fa-solid fa-arrow-left me-2"></i>Previous</button>`;
-    } else {
-        html += `<button class="btn btn-outline-secondary btn-lg w-50 fw-bold shadow-sm disabled" style="opacity:0.4;">Previous</button>`;
-    }
+    if (currentQuestionIndex > 0) html += `<button class="btn btn-outline-secondary btn-lg w-50 fw-bold shadow-sm" onclick="changeQuestion(-1)"><i class="fa-solid fa-arrow-left me-2"></i>Previous</button>`;
+    else html += `<button class="btn btn-outline-secondary btn-lg w-50 fw-bold shadow-sm disabled" style="opacity:0.4;">Previous</button>`;
 
-    if (currentQuestionIndex < total - 1) {
-        html += `<button class="btn btn-primary btn-lg w-50 fw-bold shadow-sm" onclick="changeQuestion(1)">Next<i class="fa-solid fa-arrow-right ms-2"></i></button>`;
-    } else {
-        html += `<button class="btn btn-success btn-lg w-50 fw-bold shadow-sm" onclick="submitTest()"><i class="fa-solid fa-check-double me-2"></i>Submit</button>`;
-    }
+    if (currentQuestionIndex < total - 1) html += `<button class="btn btn-primary btn-lg w-50 fw-bold shadow-sm" onclick="changeQuestion(1)">Next<i class="fa-solid fa-arrow-right ms-2"></i></button>`;
+    else html += `<button class="btn btn-success btn-lg w-50 fw-bold shadow-sm" onclick="submitTest()"><i class="fa-solid fa-check-double me-2"></i>Submit</button>`;
 
     html += `</div>`;
     document.getElementById('activeTestQuestions').innerHTML = html;
 };
 
-window.saveAnswer = function(qId, val) {
-    studentAnswers[qId] = val;
-};
-
-window.changeQuestion = function(direction) {
-    currentQuestionIndex += direction;
-    renderQuestion();
-};
-
+window.saveAnswer = function(qId, val) { studentAnswers[qId] = val; };
+window.changeQuestion = function(direction) { currentQuestionIndex += direction; renderQuestion(); };
 window.cancelTest = function() {
     if (!confirm("Quit test? All answers will be lost.")) return;
-    clearInterval(timerInterval);
-    document.getElementById('testTakingSection').classList.add('d-none');
-    document.getElementById('dashboardSection').classList.remove('d-none');
+    clearInterval(timerInterval); document.getElementById('testTakingSection').classList.add('d-none'); document.getElementById('dashboardSection').classList.remove('d-none');
 };
 
 window.submitTest = async function() {
     clearInterval(timerInterval);
-    
-    // Convert answers for API
     const formattedAnswers = {};
-    activeTest.questions.forEach(q => {
-        formattedAnswers[q.questionId] = studentAnswers[q.questionId] ? parseInt(studentAnswers[q.questionId]) : 0;
-    });
+    activeTest.questions.forEach(q => { formattedAnswers[q.questionId] = studentAnswers[q.questionId] ? parseInt(studentAnswers[q.questionId]) : 0; });
 
     document.getElementById('activeTestQuestions').innerHTML = `<div class="text-center py-5"><div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status"></div><h4 class="mt-3 text-primary fw-bold">Grading Exam...</h4></div>`;
 
     try {
-        const res = await fetch(`${BASE_URL}/api/student/submit`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-            body: JSON.stringify({ testId: activeTest._id, answers: formattedAnswers, timeTakenSeconds: timeTakenSeconds })
-        });
-
+        const res = await fetch(`${BASE_URL}/api/student/submit`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ testId: activeTest._id, answers: formattedAnswers, timeTakenSeconds: timeTakenSeconds }) });
         if (res.ok) {
+            playAudioSuccess(); // 🔥 NATIVE AUDIO FANFARE
             confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
-            document.getElementById('testTakingSection').classList.add('d-none');
-            document.getElementById('dashboardSection').classList.remove('d-none');
+            document.getElementById('testTakingSection').classList.add('d-none'); document.getElementById('dashboardSection').classList.remove('d-none');
             loadDashboard(); 
-        } else {
-            alert("Error submitting test");
-        }
-    } catch (e) {
-        alert("Network error.");
-    }
+        } else { alert("Error submitting test"); }
+    } catch (e) { alert("Network error."); }
 };
 
-// ==========================================
-// REVIEW MODAL & MOTIVATION CARD
-// ==========================================
 window.viewDetails = function(subId) {
     const sub = globalSubmissions.find(s => s._id === subId); if (!sub) return;
     
