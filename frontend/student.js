@@ -96,9 +96,41 @@ window.submitTest = async function(isAuto = false) {
     try { const res = await fetch(`${BASE_URL}/api/student/submit`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ testId: activeTest._id, answers, timeTakenSeconds: tSecs }) }); if (res.ok) { if (!isAuto) alert("Submitted successfully!"); activeTest = null; loadDashboard(); } } catch (e) { alert("Error."); }
 }
 window.viewDetails = function(subId) {
-    const sub = globalSubmissions.find(s => s._id === subId); if (!sub || !sub.answers) return;
-    document.getElementById('reviewTestName').innerText = sub.testId ? sub.testId.title : 'Unknown Test'; const tbody = document.getElementById('reviewTableBody'); tbody.innerHTML = '';
-    sub.answers.forEach((ans, idx) => { tbody.innerHTML += `<tr class="${ans.isCorrect ? '' : 'table-danger'}"><td class="fw-bold text-muted">${idx + 1}</td><td class="small">${ans.numbersArray ? ans.numbersArray.join(', ') : 'N/A'}</td><td class="fw-bold fs-5 text-${ans.isCorrect ? 'success' : 'danger'}">${ans.studentAnswer || '-'}</td><td class="fw-bold fs-5 text-dark">${ans.correctAnswer}</td><td>${ans.isCorrect ? '<i class="fa-solid fa-circle-check text-success fs-5"></i>' : '<i class="fa-solid fa-circle-xmark text-danger fs-5"></i>'}</td></tr>`; });
+    const sub = globalSubmissions.find(s => s._id === subId); if (!sub) return;
+    
+    // Fill Answer Breakdown Table
+    const tbody = document.getElementById('reviewTableBody'); tbody.innerHTML = '';
+    let totalQuestions = sub.answers ? sub.answers.length : 0;
+    
+    if (sub.answers) { 
+        sub.answers.forEach((ans, index) => { 
+            tbody.innerHTML += `<tr class="${ans.isCorrect ? '' : 'table-danger'}"><td class="fw-bold text-muted">${index + 1}</td><td class="small">${ans.numbersArray ? ans.numbersArray.join(', ') : 'N/A'}</td><td class="fw-bold fs-5 text-${ans.isCorrect ? 'success' : 'danger'}">${ans.studentAnswer}</td><td class="fw-bold fs-5">${ans.correctAnswer}</td><td>${ans.isCorrect ? '<i class="fa-solid fa-circle-check text-success fs-5"></i>' : '<i class="fa-solid fa-circle-xmark text-danger fs-5"></i>'}</td></tr>`; 
+        }); 
+    }
+
+    // 🔥 Fill the AABFC Motivation Card
+    const testTitle = sub.testId ? sub.testId.title : 'Deleted Test';
+    const studentName = document.getElementById('studentGreeting').innerText.replace('Welcome, ', '').trim();
+    
+    document.getElementById('cardStudentName').innerText = studentName;
+    document.getElementById('cardScore').innerText = `${sub.finalScore} / ${totalQuestions}`;
+    document.getElementById('cardTestName').innerText = testTitle;
+    
+    // Dynamic Message based on score percentage
+    const percentage = totalQuestions > 0 ? (sub.finalScore / totalQuestions) * 100 : 0;
+    let msg = "Keep practicing, you're getting there!";
+    if (percentage === 100) msg = "Absolutely Perfect! You are a Math Genius! 🌟";
+    else if (percentage >= 80) msg = "Outstanding Performance! Keep it up! 🔥";
+    else if (percentage >= 50) msg = "Good job! A little more practice and you'll be unstoppable! 💪";
+    document.getElementById('cardMessage').innerText = msg;
+
+    // 🔥 WhatsApp Sharing Logic
+    document.getElementById('waShareResultBtn').onclick = function() {
+        const waText = `*AABFC Abacus Center*\n\nHello! I just completed the *${testTitle}* exam and scored *${sub.finalScore}/${totalQuestions}*! 🏆\n\n"${msg}"`;
+        const waUrl = `https://wa.me/?text=${encodeURIComponent(waText)}`;
+        window.open(waUrl, '_blank');
+    };
+
     new bootstrap.Modal(document.getElementById('reviewModal')).show();
 }
 loadDashboard();
