@@ -64,7 +64,7 @@ window.saveNewPin = async function() { const rollNumber = document.getElementByI
 window.deleteStudent = async function(id) { if (!confirm(`Are you sure you want to delete student record ${id}?`)) return; await fetch(`${BASE_URL}/api/admin/students/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` }}); loadStudents(); };
 
 // ==========================================
-// EXCEL EXPORT
+// EXCEL EXPORT & WHATSAPP
 // ==========================================
 window.exportToExcel = function(testId, testTitle) {
     const testSubs = globalSubmissions.filter(sub => sub.testId && sub.testId._id === testId);
@@ -77,17 +77,46 @@ window.exportToExcel = function(testId, testTitle) {
     XLSX.writeFile(wb, `${testTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_class_results.xlsx`);
 };
 
+window.shareTestToWhatsApp = function(testTitle) {
+    const portalUrl = window.location.origin; 
+    const text = `*AABFC Abacus Center*\n\n📢 *New Test Available!*\n\nTitle: *${testTitle}*\n\nPlease log in to your student portal to complete your assignment now.\n🔗 ${portalUrl}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+};
+
 // ==========================================
-// QUIZ BUILDER & TESTS (WITH SKELETON LOADERS)
+// QUIZ BUILDER & TESTS 
 // ==========================================
 let isDraftMode = false;
+
+// 🔥 FIX 2: Restrict calendar to future dates only
+function setMinDateLimits() {
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    const currentDateTime = now.toISOString().slice(0, 16); // Formats to YYYY-MM-DDTHH:MM
+    
+    const fromInput = document.getElementById('testAvailableFrom');
+    const dueInput = document.getElementById('testDueDate');
+    
+    if (fromInput) fromInput.min = currentDateTime;
+    if (dueInput) dueInput.min = currentDateTime;
+}
 
 function addQuestionCard(existingNumbers = "") {
     const container = document.getElementById('questionsContainer'); if (!container) return;
     const card = document.createElement('div'); card.className = 'card border-0 bg-body-secondary p-3 my-2 position-relative rounded-3 shadow-sm'; card.style.borderLeft = '4px solid #4285f4';
     card.innerHTML = `<button type="button" class="btn btn-sm btn-link text-danger position-absolute top-0 end-0 remove-btn"><i class="fa-solid fa-trash"></i></button><div class="row g-2 mt-1"><div class="col-12 col-md-8"><label class="text-muted small fw-bold">Numbers Stack (Commas)</label><input type="text" class="form-control q-numbers bg-body" placeholder="10, -5, 2" value="${existingNumbers}" required></div><div class="col-12 col-md-4"><label class="text-muted small fw-bold">Preview Sum</label><input type="text" class="form-control q-answer text-success fw-bold bg-body" readonly></div></div>`;
-    const numInput = card.querySelector('.q-numbers'); const ansInput = card.querySelector('.q-answer');
-    numInput.addEventListener('input', (e) => { ansInput.value = e.target.value.split(',').reduce((t, v) => t + (parseInt(v.trim()) || 0), 0); });
+    
+    const numInput = card.querySelector('.q-numbers'); 
+    const ansInput = card.querySelector('.q-answer');
+    
+    // 🔥 FIX 1: Regex filter prevents letters from being typed
+    numInput.addEventListener('input', (e) => { 
+        // Instantly replace any character that isn't a number (0-9), comma, minus sign, or space
+        e.target.value = e.target.value.replace(/[^0-9,\- ]/g, ''); 
+        // Calculate
+        ansInput.value = e.target.value.split(',').reduce((t, v) => t + (parseInt(v.trim()) || 0), 0); 
+    });
+    
     if(existingNumbers) ansInput.value = existingNumbers.split(',').reduce((t, v) => t + (parseInt(v.trim()) || 0), 0);
     card.querySelector('.remove-btn').addEventListener('click', () => card.remove()); container.appendChild(card);
 }
@@ -138,7 +167,6 @@ window.cancelEditMode = function() {
 
 async function loadTests() {
     const tbody = document.getElementById('testTableBody'); 
-    
     if (tbody) {
         tbody.innerHTML = `
             <tr><td colspan="5"><p class="placeholder-glow mb-1"><span class="placeholder col-8 bg-secondary rounded"></span></p><p class="placeholder-glow mb-0"><span class="placeholder col-4 bg-secondary rounded"></span></p></td></tr>
@@ -165,6 +193,7 @@ async function loadTests() {
                         <td class="small fw-bold"><div class="mb-1">${test.title}</div><div class="small text-muted fw-normal">${test.questions.length}Q | ${test.timeLimitMinutes}m | ${target}</div></td>
                         <td>${badge}</td>
                         <td class="text-nowrap">
+                            <button class="btn btn-outline-success btn-sm py-0 px-2 me-1" onclick="shareTestToWhatsApp('${safeTitleStr}')" title="Share WhatsApp"><i class="fa-brands fa-whatsapp"></i></button>
                             <button class="btn btn-outline-success btn-sm py-0 px-2 me-1" onclick="exportToExcel('${test._id}', '${safeTitleStr}')" title="Export Excel"><i class="fa-solid fa-file-excel"></i></button>
                             <button class="btn btn-outline-primary btn-sm py-0 px-2 me-1" onclick="editTest('${test._id}')" title="Edit Test"><i class="fa-solid fa-pen"></i></button>
                             <button class="btn btn-light btn-sm py-0 px-2 me-1 border bg-body" onclick="toggleTest('${test._id}')" title="Toggle Live/Draft"><i class="fa-solid fa-power-off"></i></button>
@@ -243,7 +272,10 @@ const dashboardTab = document.getElementById('dashboard-tab');
 if (dashboardTab) dashboardTab.addEventListener('shown.bs.tab', function () { renderCharts(globalSubmissions); });
 
 async function initializeAdminDashboard() {
-    try { await Promise.all([loadStudents(), loadTests(), renderReviewEcosystem()]); } 
+    try { 
+        setMinDateLimits(); // Trigger calendar locks on boot
+        await Promise.all([loadStudents(), loadTests(), renderReviewEcosystem()]); 
+    } 
     catch (e) { console.error("Error loading admin data", e); } 
     finally { const loader = document.getElementById('globalLoader'); if (loader) { loader.style.opacity = '0'; setTimeout(() => loader.classList.add('d-none'), 500); } }
 }
