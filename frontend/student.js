@@ -155,9 +155,8 @@ window.renderQuestion = function() {
     document.getElementById('testProgressBar').style.width = `${((currentQuestionIndex) / total) * 100}%`;
 
     // Format numbers with proper right-alignment and plus signs
-    const formattedNumbers = q.numbersArray.map((n, i) => {
-        if (i === 0) return n; // First number is normal
-        return n >= 0 ? `+${n}` : n; // Subsequent positive numbers get a '+'
+    const formattedNumbers = q.numbersArray.map((n) => {
+        return n >= 0 ? `+${n}` : n; // ALL positive numbers get a '+' now
     }).join('<br>');
 
     // 🔥 Build the huge tappable radio buttons
