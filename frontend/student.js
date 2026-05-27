@@ -1,24 +1,24 @@
 const token = localStorage.getItem('token');
 const BASE_URL = 'https://forms-xg9n.onrender.com';
+
 if (!token) window.location.href = 'index.html';
-document.getElementById('logoutBtn').addEventListener('click', () => { localStorage.clear(); window.location.href = 'index.html'; });
 
-// 🔥 PWA Service Worker
-if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js'); }
+document.getElementById('logoutBtn').addEventListener('click', () => { 
+    localStorage.clear(); 
+    window.location.href = 'index.html'; 
+});
 
-// 🔥 GAMIFICATION & INFO LOAD
-try {
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    if (payload.name) document.getElementById('studentGreeting').innerHTML = `<i class="fa-solid fa-user me-1"></i>Welcome, ${payload.name}`;
-    if (payload.streak > 0) {
-        document.getElementById('streakDisplay').style.display = 'inline-block';
-        document.getElementById('streakCount').innerText = payload.streak;
-        if (payload.streak > 1) { confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } }); }
-    }
-} catch (e) { console.error(e); }
+let globalTests = [];
+let globalSubmissions = [];
 
-let globalTests = [], globalSubmissions = [], activeTest = null, countdownInterval = null, testStartTime = null; 
+// Pagination State Variables
+let activeTest = null;
+let currentQuestionIndex = 0;
+let studentAnswers = {}; 
+let timerInterval = null;
+let timeTakenSeconds = 0;
 
+// Initialize Dashboard
 async function loadDashboard() {
     try {
         const testRes = await fetch(`${BASE_URL}/api/student/tests`, { headers: { 'Authorization': `Bearer ${token}` }});
@@ -31,7 +31,6 @@ async function loadDashboard() {
     } catch (e) {
         console.error("Error loading dashboard data");
     } finally {
-        // 🔥 FADE OUT LOADER WHEN FINISHED
         const loader = document.getElementById('globalLoader');
         loader.style.opacity = '0';
         setTimeout(() => loader.classList.add('d-none'), 500);
@@ -39,66 +38,228 @@ async function loadDashboard() {
 }
 
 function renderDashboard() {
-    document.getElementById('dashboardSection').classList.remove('d-none'); document.getElementById('testTakingSection').classList.add('d-none');
-    const testContainer = document.getElementById('availableTestsContainer'); testContainer.innerHTML = '';
-    const submittedIds = globalSubmissions.map(s => s.testId ? s.testId._id : null);
-    const available = globalTests.filter(t => !submittedIds.includes(t._id));
-
-    if (available.length === 0) testContainer.innerHTML = '<div class="alert alert-light border border-dashed text-center text-muted">You are all caught up!</div>';
+    const userPayload = JSON.parse(atob(token.split('.')[1]));
+    document.getElementById('studentGreeting').innerHTML = `<i class="fa-solid fa-user me-1"></i>Welcome, ${userPayload.name}`;
     
-    available.forEach(t => { 
-        let dueHtml = t.dueDate ? `<br><small class="text-danger fw-bold"><i class="fa-solid fa-triangle-exclamation me-1"></i>Due: ${new Date(t.dueDate).toLocaleString()}</small>` : '';
-        testContainer.innerHTML += `<div class="card shadow-sm border-0 mb-3 bg-white"><div class="card-body d-flex justify-content-between align-items-center"><div><h6 class="fw-bold mb-0 text-dark">${t.title}</h6><small class="text-muted">${t.questions.length} Questions | ${t.timeLimitMinutes} Mins</small>${dueHtml}</div><button class="btn btn-primary btn-sm fw-bold px-3 shadow-sm" onclick="startTest('${t._id}')">Start</button></div></div>`; 
+    const availableContainer = document.getElementById('availableTestsContainer');
+    const resultsContainer = document.getElementById('myResultsContainer');
+    
+    availableContainer.innerHTML = ''; resultsContainer.innerHTML = '';
+    const completedTestIds = globalSubmissions.map(s => s.testId ? s.testId._id : null);
+    
+    let testsShown = 0;
+    globalTests.forEach(test => {
+        if (!completedTestIds.includes(test._id)) {
+            testsShown++;
+            availableContainer.innerHTML += `
+                <div class="card shadow-sm border-0 mb-3 bg-body rounded-3">
+                    <div class="card-body d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="fw-bold mb-1 text-primary">${test.title}</h6>
+                            <small class="text-muted"><i class="fa-solid fa-list-ol me-1"></i>${test.questions.length} Qs | <i class="fa-solid fa-stopwatch me-1"></i>${test.timeLimitMinutes}m</small>
+                        </div>
+                        <button class="btn btn-primary btn-sm fw-bold px-3 shadow-sm rounded-pill" onclick="startTest('${test._id}')">Start</button>
+                    </div>
+                </div>`;
+        }
     });
+    if (testsShown === 0) availableContainer.innerHTML = `<div class="alert alert-light border text-center text-muted small fw-bold">No new tests available.</div>`;
 
-    const subContainer = document.getElementById('myResultsContainer'); subContainer.innerHTML = '';
-    if (globalSubmissions.length === 0) subContainer.innerHTML = '<div class="alert alert-light border border-dashed text-center text-muted">No results yet.</div>';
+    let resultsShown = 0;
     globalSubmissions.forEach(sub => {
-        let badge = sub.status === 'graded' ? '<span class="badge bg-success">Graded</span>' : '<span class="badge bg-warning text-dark">Under Review</span>';
-        let reviewBtn = sub.status === 'graded' ? `<button class="btn btn-outline-primary btn-sm w-100 fw-bold mt-3" onclick="viewDetails('${sub._id}')">Review Answers</button>` : `<div class="text-center mt-3 small text-muted"><i class="fa-solid fa-lock me-1"></i>Answers locked until graded</div>`;
-        subContainer.innerHTML += `<div class="card shadow-sm border-0 mb-3 bg-white"><div class="card-body"><div class="d-flex justify-content-between mb-2"><h6 class="fw-bold mb-0 text-dark">${sub.testId ? sub.testId.title : 'Deleted'}</h6>${badge}</div><div class="fs-5 fw-bold text-primary">Score: ${sub.status === 'graded' ? sub.finalScore : '<i class="fa-solid fa-eye-slash me-2"></i>Hidden'}</div>${reviewBtn}</div></div>`;
+        resultsShown++;
+        let statusBadge = `<span class="badge bg-warning text-dark"><i class="fa-solid fa-clock me-1"></i>Pending Review</span>`;
+        let actionBtn = `<button class="btn btn-light btn-sm text-muted fw-bold border disabled">Waiting</button>`;
+        
+        if (sub.status === 'graded') {
+            statusBadge = `<span class="badge bg-success"><i class="fa-solid fa-check me-1"></i>Graded</span>`;
+            actionBtn = `<button class="btn btn-outline-primary btn-sm fw-bold px-3" onclick="viewDetails('${sub._id}')">View Score</button>`;
+        } else if (sub.status === 'retake_requested') {
+            statusBadge = `<span class="badge bg-danger"><i class="fa-solid fa-rotate-left me-1"></i>Retake Required</span>`;
+            actionBtn = `<button class="btn btn-danger btn-sm fw-bold px-3" onclick="startTest('${sub.testId._id}')">Retake Now</button>`;
+        }
+
+        resultsContainer.innerHTML += `
+            <div class="card shadow-sm border-0 mb-3 bg-body rounded-3">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h6 class="fw-bold mb-0 text-dark">${sub.testId ? sub.testId.title : 'Deleted Test'}</h6>
+                        ${statusBadge}
+                    </div>
+                    <div class="d-flex justify-content-between align-items-end">
+                        <small class="text-muted fw-bold">Date: ${new Date(sub.submitTime).toLocaleDateString()}</small>
+                        ${actionBtn}
+                    </div>
+                </div>
+            </div>`;
     });
+    if (resultsShown === 0) resultsContainer.innerHTML = `<div class="alert alert-light border text-center text-muted small fw-bold">No results yet.</div>`;
 }
 
-function shuffleArray(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
-function generateChoices(c) { let ch = new Set([c]); while(ch.size < 3) { let o = Math.floor(Math.random() * 20) - 10; if (o===0) o=5; ch.add(c+o); } return shuffleArray(Array.from(ch)); }
-window.playAudio = function(s) { const n = s.split(','); let t = n.map(x => { let num = parseInt(x.trim()); return num < 0 ? "minus " + Math.abs(num) : num; }).join(", "); window.speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(t); u.rate = 0.8; u.pitch = 1.1; window.speechSynthesis.speak(u); };
+// ==========================================
+// 🔥 THE NEW MULTIPLE-CHOICE EXAM ENGINE
+// ==========================================
+window.startTest = function(testId) {
+    activeTest = globalTests.find(t => t._id === testId);
+    if (!activeTest) return;
 
-function startTimer(minutes) {
-    let timeRemaining = minutes * 60; const display = document.getElementById('timerDisplay'); clearInterval(countdownInterval);
-    countdownInterval = setInterval(() => {
-        const m = Math.floor(timeRemaining / 60).toString().padStart(2, '0'); const s = (timeRemaining % 60).toString().padStart(2, '0');
-        display.innerHTML = `<i class="fa-solid fa-clock me-1"></i>${m}:${s}`;
-        if (timeRemaining <= 0) { clearInterval(countdownInterval); alert("Time is up! Submitting your test automatically."); submitTest(true); }
-        timeRemaining--;
+    currentQuestionIndex = 0;
+    studentAnswers = {};
+
+    // Generate Multiple Choice Options once for the whole test
+    activeTest.questions.forEach(q => {
+        if (!q.options) {
+            // Calculate real answer
+            const realAns = q.numbersArray.reduce((a, b) => a + b, 0);
+            const opts = new Set([realAns]);
+            // Generate 3 fake answers closely related to the real one
+            while(opts.size < 4) {
+                const offset = [1, -1, 10, -10, 5, -5][Math.floor(Math.random() * 6)];
+                opts.add(realAns + offset);
+            }
+            // Shuffle the 4 options
+            q.options = Array.from(opts).sort(() => Math.random() - 0.5);
+        }
+    });
+
+    document.getElementById('dashboardSection').classList.add('d-none');
+    document.getElementById('testTakingSection').classList.remove('d-none');
+    document.getElementById('activeTestTitle').innerText = activeTest.title;
+
+    let totalSeconds = activeTest.timeLimitMinutes * 60;
+    timeTakenSeconds = 0;
+    clearInterval(timerInterval);
+    
+    timerInterval = setInterval(() => {
+        totalSeconds--; timeTakenSeconds++;
+        let m = Math.floor(totalSeconds / 60); let s = totalSeconds % 60;
+        document.getElementById('timerDisplay').innerHTML = `<i class="fa-solid fa-clock me-1"></i>${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        
+        if (totalSeconds <= 0) { 
+            clearInterval(timerInterval); 
+            alert("Time is up! Auto-submitting your test."); 
+            submitTest(); 
+        }
     }, 1000);
-}
 
-window.startTest = function(id) {
-    activeTest = globalTests.find(t => t._id === id); if (!activeTest) return;
-    document.getElementById('dashboardSection').classList.add('d-none'); document.getElementById('testTakingSection').classList.remove('d-none'); document.getElementById('activeTestTitle').innerText = activeTest.title;
-    testStartTime = Date.now(); startTimer(activeTest.timeLimitMinutes);
-    const qContainer = document.getElementById('activeTestQuestions'); qContainer.innerHTML = '';
-    let sq = shuffleArray([...activeTest.questions]);
-    sq.forEach((q, index) => {
-        const sum = q.numbersArray.reduce((a, b) => a + b, 0); const choices = generateChoices(sum);
-        let cHtml = choices.map(c => `<div class="form-check custom-radio mb-2"><input class="form-check-input student-answer-input" type="radio" name="q_${q.questionId}" value="${c}" id="q_${q.questionId}_${c}"><label class="form-check-label fw-bold fs-5 text-dark" for="q_${q.questionId}_${c}">${c}</label></div>`).join('');
-        qContainer.innerHTML += `<div class="mb-4 p-4 bg-white rounded-4 shadow-sm border"><div class="d-flex justify-content-between align-items-center mb-3"><h5 class="fw-bold text-primary mb-0">Question ${index + 1}</h5><button class="btn btn-light text-primary rounded-circle shadow-sm p-2" onclick="playAudio('${q.numbersArray.join(',')}')"><i class="fa-solid fa-volume-high"></i></button></div><div class="row align-items-center"><div class="col-5 text-center border-end"><div class="d-inline-block text-end font-monospace fs-4 fw-bold pe-3 abacus-numbers">${q.numbersArray.join('<br>')}</div></div><div class="col-7 ps-4"><p class="text-muted small fw-bold mb-3">Select correct sum:</p>${cHtml}</div></div></div>`;
+    renderQuestion();
+};
+
+window.renderQuestion = function() {
+    const q = activeTest.questions[currentQuestionIndex];
+    const total = activeTest.questions.length;
+    
+    // Check if they already selected an answer
+    const savedAnswer = studentAnswers[q.questionId] !== undefined ? studentAnswers[q.questionId] : null;
+
+    document.getElementById('testProgressBar').style.width = `${((currentQuestionIndex) / total) * 100}%`;
+
+    // Format numbers with proper right-alignment and plus signs
+    const formattedNumbers = q.numbersArray.map((n, i) => {
+        if (i === 0) return n; // First number is normal
+        return n >= 0 ? `+${n}` : n; // Subsequent positive numbers get a '+'
+    }).join('<br>');
+
+    // 🔥 Build the huge tappable radio buttons
+    const optionsHtml = q.options.map((opt, i) => `
+        <label class="form-check custom-radio mb-3 p-3 border rounded-3 bg-white shadow-sm d-flex align-items-center w-100" style="cursor:pointer; transition: 0.2s;">
+            <input class="form-check-input fs-4 m-0" type="radio" name="q_answer" value="${opt}" 
+                ${savedAnswer == opt ? 'checked' : ''} onchange="saveAnswer('${q.questionId}', this.value)">
+            <span class="fs-4 fw-bold text-dark ms-3">${opt}</span>
+        </label>
+    `).join('');
+
+    let html = `
+        <div class="text-center mb-4">
+            <span class="badge bg-secondary mb-3 fs-6 rounded-pill px-3 py-2 shadow-sm">Question ${currentQuestionIndex + 1} of ${total}</span>
+            
+            <div class="card bg-body-secondary border-0 p-4 rounded-4 shadow-sm mb-4 d-flex flex-column align-items-center">
+                <div class="text-end px-4 border-bottom border-dark border-3 pb-2" style="min-width: 150px;">
+                    <h1 class="abacus-numbers fw-bold text-dark display-4 mb-0" style="letter-spacing: 4px; line-height: 1.6;">
+                        ${formattedNumbers}
+                    </h1>
+                </div>
+            </div>
+            
+            <div class="row justify-content-center">
+                <div class="col-12 col-sm-8 text-start">
+                    ${optionsHtml}
+                </div>
+            </div>
+        </div>
+        
+        <div class="d-flex gap-2 mt-4">
+    `;
+
+    if (currentQuestionIndex > 0) {
+        html += `<button class="btn btn-outline-secondary btn-lg w-50 fw-bold shadow-sm" onclick="changeQuestion(-1)"><i class="fa-solid fa-arrow-left me-2"></i>Previous</button>`;
+    } else {
+        html += `<button class="btn btn-outline-secondary btn-lg w-50 fw-bold shadow-sm disabled" style="opacity:0.4;">Previous</button>`;
+    }
+
+    if (currentQuestionIndex < total - 1) {
+        html += `<button class="btn btn-primary btn-lg w-50 fw-bold shadow-sm" onclick="changeQuestion(1)">Next<i class="fa-solid fa-arrow-right ms-2"></i></button>`;
+    } else {
+        html += `<button class="btn btn-success btn-lg w-50 fw-bold shadow-sm" onclick="submitTest()"><i class="fa-solid fa-check-double me-2"></i>Submit</button>`;
+    }
+
+    html += `</div>`;
+    document.getElementById('activeTestQuestions').innerHTML = html;
+};
+
+window.saveAnswer = function(qId, val) {
+    studentAnswers[qId] = val;
+};
+
+window.changeQuestion = function(direction) {
+    currentQuestionIndex += direction;
+    renderQuestion();
+};
+
+window.cancelTest = function() {
+    if (!confirm("Quit test? All answers will be lost.")) return;
+    clearInterval(timerInterval);
+    document.getElementById('testTakingSection').classList.add('d-none');
+    document.getElementById('dashboardSection').classList.remove('d-none');
+};
+
+window.submitTest = async function() {
+    clearInterval(timerInterval);
+    
+    // Convert answers for API
+    const formattedAnswers = {};
+    activeTest.questions.forEach(q => {
+        formattedAnswers[q.questionId] = studentAnswers[q.questionId] ? parseInt(studentAnswers[q.questionId]) : 0;
     });
-}
-window.cancelTest = function() { activeTest = null; testStartTime = null; clearInterval(countdownInterval); window.speechSynthesis.cancel(); renderDashboard(); }
-window.submitTest = async function(isAuto = false) {
-    const answers = {}; let allFilled = true;
-    activeTest.questions.forEach(q => { const r = document.querySelector(`input[name="q_${q.questionId}"]:checked`); if (!r) allFilled = false; else answers[q.questionId] = r.value; });
-    if (!isAuto && !allFilled) { alert("Please select an answer for all questions."); return; }
-    if (!isAuto && !confirm("Are you sure you want to submit?")) return;
-    clearInterval(countdownInterval); const tSecs = testStartTime ? Math.floor((Date.now() - testStartTime) / 1000) : 0;
-    try { const res = await fetch(`${BASE_URL}/api/student/submit`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ testId: activeTest._id, answers, timeTakenSeconds: tSecs }) }); if (res.ok) { if (!isAuto) alert("Submitted successfully!"); activeTest = null; loadDashboard(); } } catch (e) { alert("Error."); }
-}
+
+    document.getElementById('activeTestQuestions').innerHTML = `<div class="text-center py-5"><div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status"></div><h4 class="mt-3 text-primary fw-bold">Grading Exam...</h4></div>`;
+
+    try {
+        const res = await fetch(`${BASE_URL}/api/student/submit`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ testId: activeTest._id, answers: formattedAnswers, timeTakenSeconds: timeTakenSeconds })
+        });
+
+        if (res.ok) {
+            confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+            document.getElementById('testTakingSection').classList.add('d-none');
+            document.getElementById('dashboardSection').classList.remove('d-none');
+            loadDashboard(); 
+        } else {
+            alert("Error submitting test");
+        }
+    } catch (e) {
+        alert("Network error.");
+    }
+};
+
+// ==========================================
+// REVIEW MODAL & MOTIVATION CARD
+// ==========================================
 window.viewDetails = function(subId) {
     const sub = globalSubmissions.find(s => s._id === subId); if (!sub) return;
     
-    // Fill Answer Breakdown Table
     const tbody = document.getElementById('reviewTableBody'); tbody.innerHTML = '';
     let totalQuestions = sub.answers ? sub.answers.length : 0;
     
@@ -108,7 +269,6 @@ window.viewDetails = function(subId) {
         }); 
     }
 
-    // 🔥 Fill the AABFC Motivation Card
     const testTitle = sub.testId ? sub.testId.title : 'Deleted Test';
     const studentName = document.getElementById('studentGreeting').innerText.replace('Welcome, ', '').trim();
     
@@ -116,7 +276,6 @@ window.viewDetails = function(subId) {
     document.getElementById('cardScore').innerText = `${sub.finalScore} / ${totalQuestions}`;
     document.getElementById('cardTestName').innerText = testTitle;
     
-    // Dynamic Message based on score percentage
     const percentage = totalQuestions > 0 ? (sub.finalScore / totalQuestions) * 100 : 0;
     let msg = "Keep practicing, you're getting there!";
     if (percentage === 100) msg = "Absolutely Perfect! You are a Math Genius! 🌟";
@@ -124,7 +283,6 @@ window.viewDetails = function(subId) {
     else if (percentage >= 50) msg = "Good job! A little more practice and you'll be unstoppable! 💪";
     document.getElementById('cardMessage').innerText = msg;
 
-    // 🔥 WhatsApp Sharing Logic
     document.getElementById('waShareResultBtn').onclick = function() {
         const waText = `*AABFC Abacus Center*\n\nHello! I just completed the *${testTitle}* exam and scored *${sub.finalScore}/${totalQuestions}*! 🏆\n\n"${msg}"`;
         const waUrl = `https://wa.me/?text=${encodeURIComponent(waText)}`;
@@ -133,4 +291,5 @@ window.viewDetails = function(subId) {
 
     new bootstrap.Modal(document.getElementById('reviewModal')).show();
 }
+
 loadDashboard();
