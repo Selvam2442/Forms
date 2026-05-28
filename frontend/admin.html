@@ -14,7 +14,6 @@
         .nav-tabs .nav-link { border: none; border-bottom: 3px solid transparent; color: #6c757d; padding: 12px 20px; }
         .nav-tabs .nav-link.active { border-color: #0d6efd; color: #0d6efd; background: transparent; }
         .nav-tabs::-webkit-scrollbar { display: none; } 
-        /* Added Student UI Styles for the Preview Modal */
         .custom-radio .form-check-input { width: 1.5em; height: 1.5em; cursor: pointer; }
         .custom-radio .form-check-label { margin-left: 10px; cursor: pointer; padding-top: 3px; }
         .abacus-numbers { letter-spacing: 2px; line-height: 2.2; }
@@ -31,9 +30,7 @@
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
         <div class="container-fluid px-3">
             <span class="navbar-brand fw-bold fs-5"><i class="fa-solid fa-calculator me-2"></i>Abacus Admin</span>
-            <div>
-                <button class="btn btn-danger btn-sm fw-bold px-3" id="logoutBtn"><i class="fa-solid fa-right-from-bracket me-2"></i>Logout</button>
-            </div>
+            <div><button class="btn btn-danger btn-sm fw-bold px-3" id="logoutBtn"><i class="fa-solid fa-right-from-bracket me-2"></i>Logout</button></div>
         </div>
     </nav>
 
@@ -53,10 +50,7 @@
                     <div class="col-12 col-lg-8">
                         <div class="card shadow-sm border-0 rounded-3 p-3 bg-body h-100">
                             <h5 class="fw-bold mb-3 text-primary"><i class="fa-solid fa-chart-pie me-2"></i>Center Analytics</h5>
-                            <div class="row">
-                                <div class="col-md-6 mb-3"><canvas id="statusChart" style="max-height: 250px;"></canvas></div>
-                                <div class="col-md-6 mb-3"><canvas id="scoreChart" style="max-height: 250px;"></canvas></div>
-                            </div>
+                            <div class="row"><div class="col-md-6 mb-3"><canvas id="statusChart" style="max-height: 250px;"></canvas></div><div class="col-md-6 mb-3"><canvas id="scoreChart" style="max-height: 250px;"></canvas></div></div>
                         </div>
                     </div>
                     <div class="col-12 col-lg-4">
@@ -100,12 +94,7 @@
                     <div class="row g-2 align-items-center">
                         <div class="col-12 col-md-3"><input type="text" id="filterStudentName" class="form-control bg-body-secondary border-0" placeholder="🔍 Find student..."></div>
                         <div class="col-12 col-md-3">
-                            <select id="filterStatus" class="form-select bg-body-secondary border-0">
-                                <option value="all">All Statuses</option>
-                                <option value="pending_review">Awaiting Review</option>
-                                <option value="graded">Approved</option>
-                                <option value="retake_requested">Retake Requested</option>
-                            </select>
+                            <select id="filterStatus" class="form-select bg-body-secondary border-0"><option value="all">All Statuses</option><option value="pending_review">Awaiting Review</option><option value="graded">Approved</option><option value="retake_requested">Retake Requested</option></select>
                         </div>
                         <div class="col-12 col-md-3"><select id="filterTestName" class="form-select bg-body-secondary border-0"><option value="all">All Tests</option></select></div>
                         <div class="col-12 col-md-3"><button id="bulkApproveBtn" class="btn btn-success w-100 fw-bold"><i class="fa-solid fa-check-double me-1"></i>Approve All</button></div>
@@ -118,7 +107,14 @@
                 <div class="row g-4">
                     <div class="col-12 col-lg-7">
                         <div class="card shadow-sm border-0 rounded-3 p-3 bg-body mb-4">
-                            <h5 class="fw-bold mb-3 text-primary" id="quizBuilderTitle"><i class="fa-solid fa-file-pen me-2"></i>Quiz Builder</h5>
+                            
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5 class="fw-bold mb-0 text-primary" id="quizBuilderTitle"><i class="fa-solid fa-file-pen me-2"></i>Quiz Builder</h5>
+                                <button type="button" class="btn btn-warning btn-sm fw-bold shadow-sm rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#generatorModal">
+                                    <i class="fa-solid fa-wand-magic-sparkles me-1"></i>Auto-Generate
+                                </button>
+                            </div>
+
                             <form id="createTestForm">
                                 <input type="hidden" id="editingTestId"> 
                                 
@@ -179,15 +175,35 @@
     
     <div class="modal fade" id="editPinModal" tabindex="-1"><div class="modal-dialog modal-sm"><div class="modal-content border-0 shadow"><div class="modal-header bg-primary text-white border-0"><h5 class="modal-title fw-bold">Edit Student PIN</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body bg-body"><input type="hidden" id="editPinRollNumber"><label class="small text-muted fw-bold mb-1">New PIN Number:</label><input type="text" id="newPinInput" class="form-control mb-3" placeholder="Enter new PIN"><button class="btn btn-primary w-100 fw-bold" onclick="saveNewPin()">Save PIN</button></div></div></div></div>
 
-    <div class="modal fade" id="previewModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content border-0 shadow">
-                <div class="modal-header bg-dark text-white border-0">
-                    <h5 class="modal-title fw-bold"><i class="fa-solid fa-eye me-2"></i>Test Preview</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+    <div class="modal fade" id="previewModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content border-0 shadow"><div class="modal-header bg-dark text-white border-0"><h5 class="modal-title fw-bold"><i class="fa-solid fa-eye me-2"></i>Test Preview</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body bg-light p-4" id="previewModalBody"></div></div></div></div>
+
+    <div class="modal fade" id="generatorModal" tabindex="-1">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-warning border-0">
+                    <h5 class="modal-title fw-bold text-dark"><i class="fa-solid fa-wand-magic-sparkles me-2"></i>Test Generator</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body bg-light p-4" id="previewModalBody">
+                <div class="modal-body bg-body">
+                    <div class="mb-3">
+                        <label class="small fw-bold text-muted mb-1">Total Questions</label>
+                        <input type="number" id="genCount" class="form-control fw-bold" value="10" min="1" max="100">
                     </div>
+                    <div class="mb-3">
+                        <label class="small fw-bold text-muted mb-1">Digit Size</label>
+                        <select id="genDigits" class="form-select fw-bold">
+                            <option value="1">1-Digit (1 - 9)</option>
+                            <option value="2">2-Digit (10 - 99)</option>
+                            <option value="3">3-Digit (100 - 999)</option>
+                            <option value="mixed">Mixed (1 to 3 Digits)</option>
+                        </select>
+                    </div>
+                    <div class="mb-3" id="genRowsContainer">
+                        <label class="small fw-bold text-muted mb-1">Stack Size (Columns/Rows)</label>
+                        <input type="number" id="genRows" class="form-control fw-bold" value="5" min="2" max="20" title="How many numbers in each addition stack">
+                    </div>
+                    <button class="btn btn-dark w-100 fw-bold mt-2 py-2 shadow-sm" onclick="generateSmartQuestions()" data-bs-dismiss="modal">Generate Questions</button>
+                </div>
             </div>
         </div>
     </div>
