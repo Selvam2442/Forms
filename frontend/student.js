@@ -18,7 +18,7 @@ let studentAnswers = {};
 let timerInterval = null;
 let timeTakenSeconds = 0;
 
-// 🔥 NATIVE AUDIO ENGINE (Zero external files needed)
+// NATIVE AUDIO ENGINE
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 function playAudioClick() {
     if(audioCtx.state === 'suspended') audioCtx.resume();
@@ -32,7 +32,7 @@ function playAudioClick() {
 }
 function playAudioSuccess() {
     if(audioCtx.state === 'suspended') audioCtx.resume();
-    [440, 554, 659].forEach((freq, i) => { // A Major chord arpeggio
+    [440, 554, 659].forEach((freq, i) => { 
         setTimeout(() => {
             const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
             osc.connect(gain); gain.connect(audioCtx.destination);
@@ -44,7 +44,6 @@ function playAudioSuccess() {
     });
 }
 
-// Initialize Dashboard
 async function loadDashboard() {
     try {
         const testRes = await fetch(`${BASE_URL}/api/student/tests`, { headers: { 'Authorization': `Bearer ${token}` }});
@@ -98,9 +97,13 @@ function renderDashboard() {
         let statusBadge = `<span class="badge bg-warning text-dark"><i class="fa-solid fa-clock me-1"></i>Pending Review</span>`;
         let actionBtn = `<button class="btn btn-light btn-sm text-muted fw-bold border disabled">Waiting</button>`;
         
+        // 🔥 Format Student Results directly on the card
         if (sub.status === 'graded') {
+            const total = sub.answers ? sub.answers.length : 0;
+            const pct = total > 0 ? Math.round((sub.finalScore / total) * 100) : 0;
+            
             statusBadge = `<span class="badge bg-success"><i class="fa-solid fa-check me-1"></i>Graded</span>`;
-            actionBtn = `<button class="btn btn-outline-primary btn-sm fw-bold px-3" onclick="viewDetails('${sub._id}')">View Score</button>`;
+            actionBtn = `<button class="btn btn-outline-primary btn-sm fw-bold px-3" onclick="viewDetails('${sub._id}')">Review (${pct}%)</button>`;
         } else if (sub.status === 'retake_requested') {
             statusBadge = `<span class="badge bg-danger"><i class="fa-solid fa-rotate-left me-1"></i>Retake Required</span>`;
             actionBtn = `<button class="btn btn-danger btn-sm fw-bold px-3" onclick="startTest('${sub.testId._id}')">Retake Now</button>`;
@@ -123,9 +126,7 @@ function renderDashboard() {
     if (resultsShown === 0) resultsContainer.innerHTML = `<div class="alert alert-light border text-center text-muted small fw-bold">No results yet.</div>`;
 }
 
-// ==========================================
-// 🔥 THE NEW MULTIPLE-CHOICE EXAM ENGINE
-// ==========================================
+// THE NEW MULTIPLE-CHOICE EXAM ENGINE
 window.startTest = function(testId) {
     activeTest = globalTests.find(t => t._id === testId);
     if (!activeTest) return;
@@ -133,10 +134,8 @@ window.startTest = function(testId) {
     currentQuestionIndex = 0;
     studentAnswers = {};
 
-    // Generate Multiple Choice Options once
     activeTest.questions.forEach(q => {
         if (!q.options) {
-            // Reconstruct correct answer if not provided by backend payload
             let realAns = 0;
             if (activeTest.testType === 'multiplication') realAns = q.numbersArray[0] * q.numbersArray[1];
             else if (activeTest.testType === 'division') realAns = q.numbersArray[0] / q.numbersArray[1];
@@ -146,7 +145,6 @@ window.startTest = function(testId) {
             while(opts.size < 4) {
                 const offset = [1, -1, 10, -10, 5, -5][Math.floor(Math.random() * 6)];
                 let fake = realAns + offset;
-                // Avoid decimals in division fake options
                 if (activeTest.testType === 'division') fake = Math.floor(fake);
                 opts.add(fake);
             }
@@ -179,7 +177,6 @@ window.renderQuestion = function() {
 
     document.getElementById('testProgressBar').style.width = `${((currentQuestionIndex) / total) * 100}%`;
 
-    // 🔥 FORMAT THE QUESTION UI BASED ON TYPE
     let formatHtml = '';
     if (!activeTest.testType || activeTest.testType === 'addition') {
         const formattedNumbers = q.numbersArray.map((n) => n >= 0 ? `+${n}` : n).join('<br>');
@@ -234,7 +231,7 @@ window.submitTest = async function() {
     try {
         const res = await fetch(`${BASE_URL}/api/student/submit`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ testId: activeTest._id, answers: formattedAnswers, timeTakenSeconds: timeTakenSeconds }) });
         if (res.ok) {
-            playAudioSuccess(); // 🔥 NATIVE AUDIO FANFARE
+            playAudioSuccess(); 
             confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
             document.getElementById('testTakingSection').classList.add('d-none'); document.getElementById('dashboardSection').classList.remove('d-none');
             loadDashboard(); 
@@ -242,6 +239,9 @@ window.submitTest = async function() {
     } catch (e) { alert("Network error."); }
 };
 
+// ==========================================
+// REVIEW MODAL & MOTIVATION CARD
+// ==========================================
 window.viewDetails = function(subId) {
     const sub = globalSubmissions.find(s => s._id === subId); if (!sub) return;
     
@@ -257,11 +257,13 @@ window.viewDetails = function(subId) {
     const testTitle = sub.testId ? sub.testId.title : 'Deleted Test';
     const studentName = document.getElementById('studentGreeting').innerText.replace('Welcome, ', '').trim();
     
+    // 🔥 Formatted Motivation Card Data: 3/5 (60%)
+    const percentage = totalQuestions > 0 ? Math.round((sub.finalScore / totalQuestions) * 100) : 0;
+    
     document.getElementById('cardStudentName').innerText = studentName;
-    document.getElementById('cardScore').innerText = `${sub.finalScore} / ${totalQuestions}`;
+    document.getElementById('cardScore').innerHTML = `${sub.finalScore} / ${totalQuestions} <span class="fs-4">(${percentage}%)</span>`;
     document.getElementById('cardTestName').innerText = testTitle;
     
-    const percentage = totalQuestions > 0 ? (sub.finalScore / totalQuestions) * 100 : 0;
     let msg = "Keep practicing, you're getting there!";
     if (percentage === 100) msg = "Absolutely Perfect! You are a Math Genius! 🌟";
     else if (percentage >= 80) msg = "Outstanding Performance! Keep it up! 🔥";
@@ -269,7 +271,7 @@ window.viewDetails = function(subId) {
     document.getElementById('cardMessage').innerText = msg;
 
     document.getElementById('waShareResultBtn').onclick = function() {
-        const waText = `*AABFC Abacus Center*\n\nHello! I just completed the *${testTitle}* exam and scored *${sub.finalScore}/${totalQuestions}*! 🏆\n\n"${msg}"`;
+        const waText = `*AABFC Abacus Center*\n\nHello! I just completed the *${testTitle}* exam and scored *${sub.finalScore}/${totalQuestions} (${percentage}%)*! 🏆\n\n"${msg}"`;
         const waUrl = `https://wa.me/?text=${encodeURIComponent(waText)}`;
         window.open(waUrl, '_blank');
     };

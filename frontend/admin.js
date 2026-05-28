@@ -11,7 +11,9 @@ let globalStudents = [], globalManagedTests = [], globalSubmissions = [];
 let statusChartObj = null, scoreChartObj = null;
 window.visiblePendingIds = []; 
 
-// STUDENT MANAGEMENT 
+// ==========================================
+// STUDENT MANAGEMENT
+// ==========================================
 if (document.getElementById('createStudentForm')) {
     document.getElementById('createStudentForm').addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -39,14 +41,27 @@ window.openEditPin = function(rollNumber, currentPin) { document.getElementById(
 window.saveNewPin = async function() { const rollNumber = document.getElementById('editPinRollNumber').value; const newPin = document.getElementById('newPinInput').value; if (!newPin) return alert("PIN cannot be empty."); await fetch(`${BASE_URL}/api/admin/students/${rollNumber}/pin`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ pin: newPin }) }); bootstrap.Modal.getInstance(document.getElementById('editPinModal')).hide(); loadStudents(); };
 window.deleteStudent = async function(id) { if (!confirm(`Delete student record ${id}?`)) return; await fetch(`${BASE_URL}/api/admin/students/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` }}); loadStudents(); };
 
-// EXPORTS
+// ==========================================
+// EXPORTS & WHATSAPP
+// ==========================================
 window.exportToExcel = function(testId, testTitle) {
     const testSubs = globalSubmissions.filter(sub => sub.testId && sub.testId._id === testId);
     if(testSubs.length === 0) return alert("No submissions found for this test yet!");
-    const data = testSubs.map(sub => { const end = new Date(sub.submitTime); const start = new Date(end.getTime() - (sub.timeTakenSeconds * 1000)); return { "Student Name": sub.studentName || "Unknown", "Score": sub.finalScore, "Status": sub.status === 'graded' ? 'Graded' : 'Pending Review', "Start Time": start.toLocaleString(), "End Time": end.toLocaleString(), "Total Time Taken": sub.timeTakenSeconds ? `${Math.floor(sub.timeTakenSeconds / 60)}m ${sub.timeTakenSeconds % 60}s` : 'Unknown Time' }; });
+    const data = testSubs.map(sub => { 
+        const end = new Date(sub.submitTime); 
+        const start = new Date(end.getTime() - (sub.timeTakenSeconds * 1000)); 
+        
+        // 🔥 Excel formatting: 3/5 (60%)
+        const total = sub.answers ? sub.answers.length : 0;
+        const pct = total > 0 ? Math.round((sub.finalScore / total) * 100) : 0;
+        const scoreStr = total > 0 ? `${sub.finalScore}/${total} (${pct}%)` : `${sub.finalScore}`;
+
+        return { "Student Name": sub.studentName || "Unknown", "Score": scoreStr, "Status": sub.status === 'graded' ? 'Graded' : 'Pending Review', "Start Time": start.toLocaleString(), "End Time": end.toLocaleString(), "Total Time Taken": sub.timeTakenSeconds ? `${Math.floor(sub.timeTakenSeconds / 60)}m ${sub.timeTakenSeconds % 60}s` : 'Unknown Time' }; 
+    });
     const ws = XLSX.utils.json_to_sheet(data); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Test Results");
     XLSX.writeFile(wb, `${testTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_class_results.xlsx`);
 };
+
 window.shareTestToWhatsApp = function(testTitle) {
     const text = `*AABFC Abacus Center*\n\n📢 *New Test Available!*\n\nTitle: *${testTitle}*\n\nPlease log in to your student portal to complete your assignment now.\n🔗 ${window.location.origin}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
@@ -156,7 +171,7 @@ window.cancelEditMode = function() {
 }
 
 // ==========================================
-// 🔥 INTERACTIVE TEST PREVIEW
+// INTERACTIVE TEST PREVIEW
 // ==========================================
 let previewActiveTest = null;
 let previewCurrentIndex = 0;
@@ -261,7 +276,7 @@ window.toggleTest = async function(id) { await fetch(`${BASE_URL}/api/admin/test
 window.deleteTest = async function(id) { if (!confirm("Delete test?")) return; await fetch(`${BASE_URL}/api/admin/tests/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` }}); loadTests(); };
 
 // ==========================================
-// 🔥 RESTORED SUBMISSIONS & CHARTS LOGIC
+// SUBMISSIONS & CHARTS LOGIC
 // ==========================================
 async function renderReviewEcosystem() {
     try {
@@ -316,12 +331,17 @@ function applyFilters() {
         
         const timeTaken = sub.timeTakenSeconds ? `${Math.floor(sub.timeTakenSeconds / 60)}m ${sub.timeTakenSeconds % 60}s` : 'Unknown Time';
         
+        // 🔥 Score Format: 3/5 (60%)
+        const total = sub.answers ? sub.answers.length : 0;
+        const pct = total > 0 ? Math.round((sub.finalScore / total) * 100) : 0;
+        const displayScore = total > 0 ? `${sub.finalScore}/${total} <span class="fs-6 fw-normal text-muted">(${pct}%)</span>` : `${sub.finalScore}`;
+        
         container.innerHTML += `
             <div class="col">
                 <div class="card shadow-sm border-0 h-100 p-3 bg-body">
                     <div class="d-flex justify-content-between mb-1"><span class="fw-bold small">${sub.studentName||"Unknown"}</span>${stat}</div>
                     <div class="small text-muted mb-1">${sub.testId ? sub.testId.title : 'Deleted Test'} <span class="ms-2 badge bg-body-secondary text-body border"><i class="fa-solid fa-stopwatch me-1"></i>${timeTaken}</span></div>
-                    <div class="fw-bold text-primary mb-2">Score: ${sub.finalScore}</div>
+                    <div class="fw-bold text-primary mb-2 fs-5">Score: ${displayScore}</div>
                     ${act}
                     <div class="d-flex gap-2 mt-2">
                         <button class="btn btn-outline-dark btn-sm w-100 fw-bold" onclick="viewDetails('${sub._id}')"><i class="fa-solid fa-magnifying-glass me-1"></i>Review</button>
@@ -350,7 +370,14 @@ window.forceResetRetake = async function(id) { if (!confirm("Wipe this submissio
 
 window.viewDetails = function(subId) {
     const sub = globalSubmissions.find(s => s._id === subId); if (!sub) return;
-    document.getElementById('reviewStudentName').innerText = sub.studentName || 'Unknown Student'; document.getElementById('reviewTestName').innerText = sub.testId ? sub.testId.title : 'Unknown Test';
+    
+    // 🔥 Admin Modal Formatting: 3/5 (60%)
+    const total = sub.answers ? sub.answers.length : 0;
+    const pct = total > 0 ? Math.round((sub.finalScore / total) * 100) : 0;
+    const adminScoreDisplay = total > 0 ? ` - Score: ${sub.finalScore}/${total} (${pct}%)` : '';
+
+    document.getElementById('reviewStudentName').innerText = (sub.studentName || 'Unknown Student') + adminScoreDisplay; 
+    document.getElementById('reviewTestName').innerText = sub.testId ? sub.testId.title : 'Unknown Test';
     const tbody = document.getElementById('reviewTableBody'); if (!tbody) return; tbody.innerHTML = '';
     if (sub.answers) { sub.answers.forEach((ans, index) => { tbody.innerHTML += `<tr class="${ans.isCorrect ? '' : 'table-danger'}"><td class="fw-bold text-muted">${index + 1}</td><td class="small">${ans.numbersArray ? ans.numbersArray.join(', ') : 'N/A'}</td><td class="fw-bold fs-5 text-${ans.isCorrect ? 'success' : 'danger'}">${ans.studentAnswer}</td><td class="fw-bold fs-5">${ans.correctAnswer}</td><td>${ans.isCorrect ? '<i class="fa-solid fa-circle-check text-success fs-5"></i>' : '<i class="fa-solid fa-circle-xmark text-danger fs-5"></i>'}</td></tr>`; }); }
     new bootstrap.Modal(document.getElementById('reviewModal')).show();
