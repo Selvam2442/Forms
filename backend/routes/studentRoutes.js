@@ -1,74 +1,112 @@
 const express = require('express');
 const router = express.Router();
-const jwt = require('jsonwebtoken');
 const Test = require('../models/Test');
 const Submission = require('../models/Submission');
+const jwt = require('jsonwebtoken');
 
+// Middleware to verify student token
 const verifyStudent = (req, res, next) => {
-    const authHeader = req.headers['authorization'];
-    if (!authHeader) return res.status(403).json({ error: "Access Denied." });
-    const token = authHeader.split(' ')[1];
+    const token = req.header('Authorization');
+    if (!token) return res.status(401).json({ error: "Access Denied" });
+
     try {
-        const verified = jwt.verify(token, process.env.JWT_SECRET || 'supersecret');
-        if (verified.role !== 'student') return res.status(403).json({ error: "Student access required." });
+        const verified = jwt.verify(token.replace('Bearer ', ''), process.env.JWT_SECRET || 'fallback_secret');
+        if (verified.role !== 'student') return res.status(403).json({ error: "Invalid role" });
         req.user = verified;
         next();
-    } catch (error) { res.status(401).json({ error: "Invalid token." }); }
+    } catch (err) {
+        res.status(400).json({ error: "Invalid Token" });
+    }
 };
 
-router.use(verifyStudent);
-
-router.get('/tests', async (req, res) => {
+// 1. Get Available Tests for this Student
+router.get('/tests', verifyStudent, async (req, res) => {
     try {
         const now = new Date();
+        // Find tests that are active, and either assigned to everyone OR specifically to this student's roll number
         const tests = await Test.find({ 
             isActive: true,
-            $and: [
-                { $or: [{ availableFrom: null }, { availableFrom: { $lte: now } }] },
-                { $or: [{ dueDate: null }, { dueDate: { $gte: now } }] }
-            ],
-            // 🔥 THE FIX: Can only see if "assignedTo" is empty (Everyone) OR includes their Roll Number
             $or: [
-                { assignedTo: { $size: 0 } },
+                { assignedTo: { $size: 0 } }, 
                 { assignedTo: req.user.rollNumber }
             ]
-        }).select('-questions.correctAnswer');
-        res.status(200).json(tests);
-    } catch (error) { res.status(500).json({ error: "Server error fetching tests." }); }
-});
-
-router.get('/my-submissions', async (req, res) => {
-    try {
-        const submissions = await Submission.find({ studentId: req.user.userId }).populate('testId', 'title').sort({ submitTime: -1 });
-        const safeSubmissions = submissions.map(s => {
-            const obj = s.toObject();
-            if (obj.status !== 'graded') { obj.finalScore = undefined; obj.answers = []; }
-            return obj;
         });
-        res.status(200).json(safeSubmissions);
-    } catch (error) { res.status(500).json({ error: "Server error." }); }
+
+        // Filter out tests that haven't opened yet or are past their due date
+        const validTests = tests.filter(t => {
+            if (t.availableFrom && new Date(t.availableFrom) > now) return false;
+            if (t.dueDate && new Date(t.dueDate) < now) return false;
+            return true;
+        });
+
+        res.json(validTests);
+    } catch (err) {
+        res.status(500).json({ error: "Error fetching tests" });
+    }
 });
 
-router.post('/submit', async (req, res) => {
+// 2. Submit a Test
+router.post('/submit', verifyStudent, async (req, res) => {
     try {
-        const { testId, answers, timeTakenSeconds } = req.body; 
+        const { testId, answers, timeTakenSeconds } = req.body;
         const test = await Test.findById(testId);
-        if(!test) return res.status(404).json({error: "Test not found"});
+        if (!test) return res.status(404).json({ error: "Test not found" });
 
         let score = 0;
         const gradedAnswers = test.questions.map(q => {
-            const studentAns = Number(answers[q.questionId]);
+            const studentAns = answers[q.questionId] !== undefined ? answers[q.questionId] : null;
             const isCorrect = studentAns === q.correctAnswer;
             if (isCorrect) score++;
-            return { questionId: q.questionId, numbersArray: q.numbersArray, studentAnswer: studentAns || 0, correctAnswer: q.correctAnswer, isCorrect: isCorrect };
+
+            return {
+                questionId: q.questionId,
+                numbersArray: q.numbersArray,
+                correctAnswer: q.correctAnswer,
+                studentAnswer: studentAns,
+                isCorrect: isCorrect
+            };
         });
 
-        const submission = new Submission({
-            studentId: req.user.userId, studentName: req.user.name, testId: test._id, answers: gradedAnswers, finalScore: score, timeTakenSeconds: timeTakenSeconds || 0, status: 'pending_review'
+        const newSubmission = new Submission({
+            studentId: req.user.id,
+            studentName: req.user.name,
+            testId: test._id,
+            answers: gradedAnswers,
+            finalScore: score,
+            timeTakenSeconds: timeTakenSeconds || 0,
+            status: 'pending_review' // Default status awaiting admin approval
         });
+
+        await newSubmission.save();
+        res.status(201).json({ message: "Test submitted successfully!", score });
+    } catch (err) {
+        res.status(500).json({ error: "Error submitting test" });
+    }
+});
+
+// 3. Get Student's Submissions (History & Results)
+router.get('/my-submissions', verifyStudent, async (req, res) => {
+    try {
+        const submissions = await Submission.find({ studentId: req.user.id }).populate('testId', 'title testType');
+        res.json(submissions);
+    } catch (err) {
+        res.status(500).json({ error: "Error fetching submissions" });
+    }
+});
+
+// 4. 🔥 NEW: Request a Retake
+router.put('/submissions/:id/request-retake', verifyStudent, async (req, res) => {
+    try {
+        const submission = await Submission.findOne({ _id: req.params.id, studentId: req.user.id });
+        if (!submission) return res.status(404).json({ error: "Submission not found" });
+
+        submission.status = 'retake_requested';
         await submission.save();
-        res.status(201).json({ message: "Test submitted successfully!" });
-    } catch (error) { res.status(500).json({ error: "Server error submitting test." }); }
+
+        res.status(200).json({ message: "Retake requested successfully!" });
+    } catch (error) {
+        res.status(500).json({ error: "Error requesting retake" });
+    }
 });
 
 module.exports = router;

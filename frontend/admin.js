@@ -139,7 +139,6 @@ window.deleteStudent = async function(id) {
     loadStudents(); 
 };
 
-
 // ==========================================
 // 2. EXPORTS & WHATSAPP
 // ==========================================
@@ -176,7 +175,6 @@ window.shareTestToWhatsApp = function(testTitle) {
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
 };
 
-
 // ==========================================
 // 3. QUIZ BUILDER & SMART GENERATOR LOGIC
 // ==========================================
@@ -197,6 +195,8 @@ function setMinDateLimits() {
 document.getElementById('testTypeSelect')?.addEventListener('change', (e) => { 
     document.getElementById('questionsContainer').innerHTML = ''; 
     addQuestionCard(); 
+    const rowsContainer = document.getElementById('genRowsContainer');
+    if (rowsContainer) rowsContainer.style.display = e.target.value === 'addition' ? 'block' : 'none';
 });
 
 function addQuestionCard(existingNumbers = []) {
@@ -278,20 +278,18 @@ if (document.getElementById('addQuestionBtn')) {
     document.getElementById('addQuestionBtn').addEventListener('click', () => addQuestionCard()); 
 }
 
-// 🔥 UPGRADED SMART GENERATOR (Handles Operator properly)
+// 🔥 SMART GENERATOR LOGIC (Operator handled properly)
 window.generateSmartQuestions = function() {
     const operator = document.getElementById('genOperator').value;
     const count = parseInt(document.getElementById('genCount').value) || 10;
     const digits = document.getElementById('genDigits').value;
     const rows = parseInt(document.getElementById('genRows').value) || 5;
 
-    // 1. Sync the main Test Type Dropdown based on what they picked in the modal
     const mainTestType = document.getElementById('testTypeSelect');
     if (operator === 'multiplication') mainTestType.value = 'multiplication';
     else if (operator === 'division') mainTestType.value = 'division';
     else mainTestType.value = 'addition';
 
-    // 2. Clear the screen if there's only an empty card sitting there
     const container = document.getElementById('questionsContainer');
     if(container.children.length === 1) {
         const inputs = container.children[0].querySelectorAll('input[type="text"], input[type="number"]');
@@ -310,14 +308,12 @@ window.generateSmartQuestions = function() {
         return Math.floor(Math.random() * (max - min + 1)) + min;
     };
 
-    // 3. Loop and build
     for (let i = 0; i < count; i++) {
         let nums = [];
         
         if (operator === 'addition' || operator === 'mixed') {
             for(let r = 0; r < rows; r++) {
                 let num = getRandomNum(digits);
-                // If they picked Mixed, throw in negative numbers randomly (except the first line)
                 if(operator === 'mixed' && r > 0 && Math.random() < 0.3) num = -num; 
                 nums.push(num);
             }
@@ -512,6 +508,9 @@ window.closePreviewModal = function() {
     bootstrap.Modal.getInstance(document.getElementById('previewModal')).hide(); 
 };
 
+// ==========================================
+// 5. TEST MANAGEMENT & COMPLETION TRACKER
+// ==========================================
 async function loadTests() {
     const tbody = document.getElementById('testTableBody'); 
     
@@ -545,6 +544,7 @@ async function loadTests() {
                             <td>${badge}</td>
                             <td class="text-nowrap">
                                 <button class="btn btn-outline-info btn-sm py-0 px-2 me-1" onclick="previewTest('${test._id}')" title="Preview"><i class="fa-solid fa-eye"></i></button>
+                                <button class="btn btn-outline-dark btn-sm py-0 px-2 me-1" onclick="viewTestTracker('${test._id}')" title="View Tracker"><i class="fa-solid fa-chart-bar"></i></button>
                                 <button class="btn btn-outline-success btn-sm py-0 px-2 me-1" onclick="shareTestToWhatsApp('${safeTitleStr}')" title="Share WhatsApp"><i class="fa-brands fa-whatsapp"></i></button>
                                 <button class="btn btn-outline-success btn-sm py-0 px-2 me-1" onclick="exportToExcel('${test._id}', '${safeTitleStr}')" title="Export Excel"><i class="fa-solid fa-file-excel"></i></button>
                                 <button class="btn btn-outline-primary btn-sm py-0 px-2 me-1" onclick="editTest('${test._id}')" title="Edit Test"><i class="fa-solid fa-pen"></i></button>
@@ -571,9 +571,48 @@ window.deleteTest = async function(id) {
     loadTests(); 
 };
 
+// 🔥 Test Completion Tracker Logic
+window.viewTestTracker = function(testId) {
+    const test = globalManagedTests.find(t => t._id === testId);
+    if (!test) return;
+
+    document.getElementById('trackerTestName').innerText = test.title;
+
+    const testSubmissions = globalSubmissions.filter(sub => sub.testId && sub.testId._id === testId);
+    
+    const listFinished = document.getElementById('listFinished');
+    const listNotFinished = document.getElementById('listNotFinished');
+    listFinished.innerHTML = '';
+    listNotFinished.innerHTML = '';
+
+    let countDone = 0;
+    let countPending = 0;
+
+    globalStudents.forEach(student => {
+        if (test.assignedTo && test.assignedTo.length > 0 && !test.assignedTo.includes(student.rollNumber)) {
+            return; 
+        }
+
+        const hasFinished = testSubmissions.find(sub => sub.studentName === student.name || (sub.studentId && sub.studentId.rollNumber === student.rollNumber));
+
+        if (hasFinished) {
+            countDone++;
+            const scoreStr = `${hasFinished.finalScore}/${hasFinished.answers ? hasFinished.answers.length : 0}`;
+            listFinished.innerHTML += `<li class="list-group-item d-flex justify-content-between align-items-center bg-white shadow-sm mb-1 border-0 rounded-2"><span>${student.name}</span><span class="badge bg-success">${scoreStr}</span></li>`;
+        } else {
+            countPending++;
+            listNotFinished.innerHTML += `<li class="list-group-item bg-transparent border-0 py-1"><i class="fa-solid fa-circle-notch me-2 text-danger"></i>${student.name} <small class="text-muted">(${student.rollNumber})</small></li>`;
+        }
+    });
+
+    document.getElementById('countFinished').innerText = countDone;
+    document.getElementById('countNotFinished').innerText = countPending;
+
+    new bootstrap.Modal(document.getElementById('trackerModal')).show();
+};
 
 // ==========================================
-// 5. SUBMISSIONS & CHARTS LOGIC
+// 6. SUBMISSIONS & CHARTS LOGIC
 // ==========================================
 async function renderReviewEcosystem() {
     try {

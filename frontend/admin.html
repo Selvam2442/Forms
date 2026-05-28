@@ -21,6 +21,7 @@
 </head>
 <body class="bg-light">
 
+    <!-- 🔥 Loading Overlay -->
     <div id="globalLoader" class="position-fixed w-100 h-100 flex-column align-items-center justify-content-center bg-body" style="z-index: 9999; top: 0; left: 0; transition: opacity 0.5s ease; display: flex;">
         <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status"></div>
         <h4 class="text-primary fw-bold mb-2">Loading Center Data...</h4>
@@ -45,12 +46,16 @@
 
         <div class="tab-content" id="adminTabsContent">
             
+            <!-- TAB 1: DASHBOARD -->
             <div class="tab-pane fade show active" id="dashboard" role="tabpanel">
                 <div class="row g-4">
                     <div class="col-12 col-lg-8">
                         <div class="card shadow-sm border-0 rounded-3 p-3 bg-body h-100">
                             <h5 class="fw-bold mb-3 text-primary"><i class="fa-solid fa-chart-pie me-2"></i>Center Analytics</h5>
-                            <div class="row"><div class="col-md-6 mb-3"><canvas id="statusChart" style="max-height: 250px;"></canvas></div><div class="col-md-6 mb-3"><canvas id="scoreChart" style="max-height: 250px;"></canvas></div></div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3"><canvas id="statusChart" style="max-height: 250px;"></canvas></div>
+                                <div class="col-md-6 mb-3"><canvas id="scoreChart" style="max-height: 250px;"></canvas></div>
+                            </div>
                         </div>
                     </div>
                     <div class="col-12 col-lg-4">
@@ -62,6 +67,7 @@
                 </div>
             </div>
 
+            <!-- TAB 2: STUDENTS -->
             <div class="tab-pane fade" id="students" role="tabpanel">
                 <div class="row g-4">
                     <div class="col-12 col-md-5 col-lg-4">
@@ -89,12 +95,18 @@
                 </div>
             </div>
 
+            <!-- TAB 3: SUBMISSIONS -->
             <div class="tab-pane fade" id="submissions" role="tabpanel">
                 <div class="card shadow-sm border-0 bg-body p-3 mb-4 rounded-3">
                     <div class="row g-2 align-items-center">
                         <div class="col-12 col-md-3"><input type="text" id="filterStudentName" class="form-control bg-body-secondary border-0" placeholder="🔍 Find student..."></div>
                         <div class="col-12 col-md-3">
-                            <select id="filterStatus" class="form-select bg-body-secondary border-0"><option value="all">All Statuses</option><option value="pending_review">Awaiting Review</option><option value="graded">Approved</option><option value="retake_requested">Retake Requested</option></select>
+                            <select id="filterStatus" class="form-select bg-body-secondary border-0">
+                                <option value="all">All Statuses</option>
+                                <option value="pending_review">Awaiting Review</option>
+                                <option value="graded">Approved</option>
+                                <option value="retake_requested">Retake Requested</option>
+                            </select>
                         </div>
                         <div class="col-12 col-md-3"><select id="filterTestName" class="form-select bg-body-secondary border-0"><option value="all">All Tests</option></select></div>
                         <div class="col-12 col-md-3"><button id="bulkApproveBtn" class="btn btn-success w-100 fw-bold"><i class="fa-solid fa-check-double me-1"></i>Approve All</button></div>
@@ -103,6 +115,7 @@
                 <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3 mb-4" id="submissionsContainer"></div>
             </div>
 
+            <!-- TAB 4: TESTS & QUIZ BUILDER -->
             <div class="tab-pane fade" id="tests" role="tabpanel">
                 <div class="row g-4">
                     <div class="col-12 col-lg-7">
@@ -127,7 +140,9 @@
                                     </select>
                                 </div>
 
-                                <div class="mb-3"><input type="text" id="testTitle" class="form-control form-control-lg border-0 border-bottom" placeholder="Untitled Test" required style="border-radius: 0; background: transparent;"></div>
+                                <div class="mb-3">
+                                    <input type="text" id="testTitle" class="form-control form-control-lg border-0 border-bottom" placeholder="Untitled Test" required style="border-radius: 0; background: transparent;">
+                                </div>
                                 
                                 <div class="row g-2 mb-3">
                                     <div class="col-6 col-md-4"><label class="small fw-bold text-muted"><i class="fa-solid fa-clock me-1"></i>MINS:</label><input type="number" id="testTime" class="form-control" placeholder="10" required></div>
@@ -171,12 +186,64 @@
         </div> 
     </div>
 
-    <div class="modal fade" id="reviewModal" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content border-0 shadow"><div class="modal-header bg-dark text-white border-0"><h5 class="modal-title fw-bold">Answer Breakdown</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body bg-body"><h4 id="reviewStudentName" class="text-primary fw-bold mb-0"></h4><p class="text-muted small mb-3 fw-bold" id="reviewTestName"></p><div class="table-responsive bg-body rounded-3 p-2 shadow-sm"><table class="table table-borderless table-hover align-middle text-center mb-0"><thead class="border-bottom"><tr class="text-muted small text-uppercase"><th>#</th><th>Stack</th><th>Student</th><th>Correct</th><th>Result</th></tr></thead><tbody id="reviewTableBody"></tbody></table></div></div></div></div></div>
+    <!-- Review Modal -->
+    <div class="modal fade" id="reviewModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header bg-dark text-white border-0">
+                    <h5 class="modal-title fw-bold">Answer Breakdown</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body bg-body">
+                    <h4 id="reviewStudentName" class="text-primary fw-bold mb-0"></h4>
+                    <p class="text-muted small mb-3 fw-bold" id="reviewTestName"></p>
+                    <div class="table-responsive bg-body rounded-3 p-2 shadow-sm">
+                        <table class="table table-borderless table-hover align-middle text-center mb-0">
+                            <thead class="border-bottom">
+                                <tr class="text-muted small text-uppercase"><th>#</th><th>Stack</th><th>Student</th><th>Correct</th><th>Result</th></tr>
+                            </thead>
+                            <tbody id="reviewTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
     
-    <div class="modal fade" id="editPinModal" tabindex="-1"><div class="modal-dialog modal-sm"><div class="modal-content border-0 shadow"><div class="modal-header bg-primary text-white border-0"><h5 class="modal-title fw-bold">Edit Student PIN</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body bg-body"><input type="hidden" id="editPinRollNumber"><label class="small text-muted fw-bold mb-1">New PIN Number:</label><input type="text" id="newPinInput" class="form-control mb-3" placeholder="Enter new PIN"><button class="btn btn-primary w-100 fw-bold" onclick="saveNewPin()">Save PIN</button></div></div></div></div>
+    <!-- Edit PIN Modal -->
+    <div class="modal fade" id="editPinModal" tabindex="-1">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header bg-primary text-white border-0">
+                    <h5 class="modal-title fw-bold">Edit Student PIN</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body bg-body">
+                    <input type="hidden" id="editPinRollNumber">
+                    <label class="small text-muted fw-bold mb-1">New PIN Number:</label>
+                    <input type="text" id="newPinInput" class="form-control mb-3" placeholder="Enter new PIN">
+                    <button class="btn btn-primary w-100 fw-bold" onclick="saveNewPin()">Save PIN</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    <div class="modal fade" id="previewModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content border-0 shadow"><div class="modal-header bg-dark text-white border-0"><h5 class="modal-title fw-bold"><i class="fa-solid fa-eye me-2"></i>Test Preview</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body bg-light p-4" id="previewModalBody"></div></div></div></div>
+    <!-- Live Preview Modal -->
+    <div class="modal fade" id="previewModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header bg-dark text-white border-0">
+                    <h5 class="modal-title fw-bold"><i class="fa-solid fa-eye me-2"></i>Test Preview</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body bg-light p-4" id="previewModalBody">
+                    <!-- Dynamic Content -->
+                </div>
+            </div>
+        </div>
+    </div>
 
+    <!-- 🔥 SMART GENERATOR MODAL -->
     <div class="modal fade" id="generatorModal" tabindex="-1">
         <div class="modal-dialog modal-sm">
             <div class="modal-content border-0 shadow-lg">
@@ -185,7 +252,6 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body bg-body">
-                    
                     <div class="mb-3">
                         <label class="small fw-bold text-muted mb-1">Operator / Type</label>
                         <select id="genOperator" class="form-select fw-bold" onchange="document.getElementById('genRowsContainer').style.display = (this.value === 'addition' || this.value === 'mixed') ? 'block' : 'none';">
@@ -195,12 +261,10 @@
                             <option value="division">Division (÷)</option>
                         </select>
                     </div>
-
                     <div class="mb-3">
                         <label class="small fw-bold text-muted mb-1">Total Questions</label>
                         <input type="number" id="genCount" class="form-control fw-bold" value="10" min="1" max="100">
                     </div>
-                    
                     <div class="mb-3">
                         <label class="small fw-bold text-muted mb-1">Digit Size</label>
                         <select id="genDigits" class="form-select fw-bold">
@@ -210,13 +274,32 @@
                             <option value="mixed">Mixed (1 to 3 Digits)</option>
                         </select>
                     </div>
-                    
                     <div class="mb-3" id="genRowsContainer">
                         <label class="small fw-bold text-muted mb-1">Stack Size (Columns/Rows)</label>
-                        <input type="number" id="genRows" class="form-control fw-bold" value="5" min="2" max="20" title="How many numbers in each addition stack">
+                        <input type="number" id="genRows" class="form-control fw-bold" value="5" min="2" max="20">
                     </div>
-                    
                     <button class="btn btn-dark w-100 fw-bold mt-2 py-2 shadow-sm" onclick="generateSmartQuestions()" data-bs-dismiss="modal">Generate Questions</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🔥 COMPLETION TRACKER MODAL -->
+    <div class="modal fade" id="trackerModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header bg-dark text-white border-0">
+                    <h5 class="modal-title fw-bold"><i class="fa-solid fa-list-check me-2"></i>Test Completion Tracker</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body bg-light">
+                    <h5 id="trackerTestName" class="text-primary fw-bold mb-3 text-center">Test Name</h5>
+                    
+                    <h6 class="fw-bold text-success border-bottom pb-2">✅ Finished (<span id="countFinished">0</span>)</h6>
+                    <ul id="listFinished" class="list-group mb-4 small fw-bold shadow-sm"></ul>
+                    
+                    <h6 class="fw-bold text-danger border-bottom pb-2">⏳ Not Finished (<span id="countNotFinished">0</span>)</h6>
+                    <ul id="listNotFinished" class="list-group small text-muted shadow-sm"></ul>
                 </div>
             </div>
         </div>

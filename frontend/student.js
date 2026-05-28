@@ -20,21 +20,26 @@ let timeTakenSeconds = 0;
 
 // NATIVE AUDIO ENGINE
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
 function playAudioClick() {
     if(audioCtx.state === 'suspended') audioCtx.resume();
-    const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+    const osc = audioCtx.createOscillator(); 
+    const gain = audioCtx.createGain();
     osc.connect(gain); gain.connect(audioCtx.destination);
-    osc.type = 'triangle'; osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+    osc.type = 'triangle'; 
+    osc.frequency.setValueAtTime(600, audioCtx.currentTime);
     osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.05);
     gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.05);
     osc.start(); osc.stop(audioCtx.currentTime + 0.05);
 }
+
 function playAudioSuccess() {
     if(audioCtx.state === 'suspended') audioCtx.resume();
     [440, 554, 659].forEach((freq, i) => { 
         setTimeout(() => {
-            const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+            const osc = audioCtx.createOscillator(); 
+            const gain = audioCtx.createGain();
             osc.connect(gain); gain.connect(audioCtx.destination);
             osc.type = 'sine'; osc.frequency.value = freq;
             gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
@@ -57,22 +62,23 @@ async function loadDashboard() {
         console.error("Error loading dashboard data");
     } finally {
         const loader = document.getElementById('globalLoader');
-        loader.style.opacity = '0';
-        setTimeout(() => loader.classList.add('d-none'), 500);
+        if (loader) {
+            loader.style.opacity = '0';
+            setTimeout(() => loader.classList.add('d-none'), 500);
+        }
     }
 }
 
 function renderDashboard() {
     const userPayload = JSON.parse(atob(token.split('.')[1]));
-    
-    // Shortened name for mobile display
     const firstName = userPayload.name.split(' ')[0];
     document.getElementById('studentGreeting').innerHTML = `<i class="fa-solid fa-user me-1"></i>Welcome, ${firstName}`;
     
     const availableContainer = document.getElementById('availableTestsContainer');
     const resultsContainer = document.getElementById('myResultsContainer');
     
-    availableContainer.innerHTML = ''; resultsContainer.innerHTML = '';
+    availableContainer.innerHTML = ''; 
+    resultsContainer.innerHTML = '';
     const completedTestIds = globalSubmissions.map(s => s.testId ? s.testId._id : null);
     
     let testsShown = 0;
@@ -92,7 +98,10 @@ function renderDashboard() {
                 </div>`;
         }
     });
-    if (testsShown === 0) availableContainer.innerHTML = `<div class="alert alert-light border text-center text-muted small fw-bold">No new tests available.</div>`;
+    
+    if (testsShown === 0) {
+        availableContainer.innerHTML = `<div class="alert alert-light border text-center text-muted small fw-bold">No new tests available.</div>`;
+    }
 
     let resultsShown = 0;
     globalSubmissions.forEach(sub => {
@@ -125,12 +134,13 @@ function renderDashboard() {
                 </div>
             </div>`;
     });
-    if (resultsShown === 0) resultsContainer.innerHTML = `<div class="alert alert-light border text-center text-muted small fw-bold">No results yet.</div>`;
+    
+    if (resultsShown === 0) {
+        resultsContainer.innerHTML = `<div class="alert alert-light border text-center text-muted small fw-bold">No results yet.</div>`;
+    }
 
-    // 🔥 NEW: Trigger Welcome Reminder Modal (Only once per session)
     if (!sessionStorage.getItem('welcomeShown')) {
         document.getElementById('welcomeModalName').innerText = `Welcome, ${firstName}!`;
-        
         const reminderBox = document.getElementById('welcomeReminderBox');
         if (testsShown > 0) {
             reminderBox.classList.remove('d-none');
@@ -138,7 +148,6 @@ function renderDashboard() {
         } else {
             reminderBox.classList.add('d-none');
         }
-        
         new bootstrap.Modal(document.getElementById('welcomeModal')).show();
         sessionStorage.setItem('welcomeShown', 'true');
     }
@@ -179,10 +188,17 @@ window.startTest = function(testId) {
     clearInterval(timerInterval);
     
     timerInterval = setInterval(() => {
-        totalSeconds--; timeTakenSeconds++;
-        let m = Math.floor(totalSeconds / 60); let s = totalSeconds % 60;
+        totalSeconds--; 
+        timeTakenSeconds++;
+        let m = Math.floor(totalSeconds / 60); 
+        let s = totalSeconds % 60;
         document.getElementById('timerDisplay').innerHTML = `<i class="fa-solid fa-clock me-1"></i>${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-        if (totalSeconds <= 0) { clearInterval(timerInterval); alert("Time is up! Auto-submitting your test."); submitTest(); }
+        
+        if (totalSeconds <= 0) { 
+            clearInterval(timerInterval); 
+            alert("Time is up! Auto-submitting your test."); 
+            submitTest(); 
+        }
     }, 1000);
 
     renderQuestion();
@@ -222,7 +238,6 @@ window.renderQuestion = function() {
         <div class="d-flex gap-2 mt-4">
     `;
 
-    // 🔥 FORCE ANSWER LOCKOUT LOGIC
     const hasAnswer = savedAnswer !== null;
     const nextDisabled = hasAnswer ? '' : 'disabled';
 
@@ -242,7 +257,6 @@ window.renderQuestion = function() {
     document.getElementById('activeTestQuestions').innerHTML = html;
 };
 
-// 🔥 INSTANTLY UNLOCK BUTTONS WHEN CLICKED
 window.saveAnswer = function(qId, val) { 
     studentAnswers[qId] = val; 
     const nextBtn = document.getElementById('nextBtn');
@@ -252,42 +266,69 @@ window.saveAnswer = function(qId, val) {
     if (submitBtn) submitBtn.removeAttribute('disabled');
 };
 
-window.changeQuestion = function(direction) { currentQuestionIndex += direction; renderQuestion(); };
+window.changeQuestion = function(direction) { 
+    currentQuestionIndex += direction; 
+    renderQuestion(); 
+};
+
 window.cancelTest = function() {
     if (!confirm("Quit test? All answers will be lost.")) return;
-    clearInterval(timerInterval); document.getElementById('testTakingSection').classList.add('d-none'); document.getElementById('dashboardSection').classList.remove('d-none');
+    clearInterval(timerInterval); 
+    document.getElementById('testTakingSection').classList.add('d-none'); 
+    document.getElementById('dashboardSection').classList.remove('d-none');
 };
 
 window.submitTest = async function() {
     clearInterval(timerInterval);
     const formattedAnswers = {};
-    activeTest.questions.forEach(q => { formattedAnswers[q.questionId] = studentAnswers[q.questionId] ? parseInt(studentAnswers[q.questionId]) : 0; });
+    activeTest.questions.forEach(q => { 
+        formattedAnswers[q.questionId] = studentAnswers[q.questionId] ? parseInt(studentAnswers[q.questionId]) : 0; 
+    });
 
     document.getElementById('activeTestQuestions').innerHTML = `<div class="text-center py-5"><div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status"></div><h4 class="mt-3 text-primary fw-bold">Grading Exam...</h4></div>`;
 
     try {
-        const res = await fetch(`${BASE_URL}/api/student/submit`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ testId: activeTest._id, answers: formattedAnswers, timeTakenSeconds: timeTakenSeconds }) });
+        const res = await fetch(`${BASE_URL}/api/student/submit`, { 
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, 
+            body: JSON.stringify({ testId: activeTest._id, answers: formattedAnswers, timeTakenSeconds: timeTakenSeconds }) 
+        });
+        
         if (res.ok) {
             playAudioSuccess(); 
             confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
-            document.getElementById('testTakingSection').classList.add('d-none'); document.getElementById('dashboardSection').classList.remove('d-none');
+            document.getElementById('testTakingSection').classList.add('d-none'); 
+            document.getElementById('dashboardSection').classList.remove('d-none');
             loadDashboard(); 
-        } else { alert("Error submitting test"); }
-    } catch (e) { alert("Network error."); }
+        } else { 
+            alert("Error submitting test"); 
+        }
+    } catch (e) { 
+        alert("Network error."); 
+    }
 };
 
 // ==========================================
-// REVIEW MODAL & MOTIVATION CARD
+// REVIEW MODAL & RETAKE REQUEST LOGIC
 // ==========================================
 window.viewDetails = function(subId) {
-    const sub = globalSubmissions.find(s => s._id === subId); if (!sub) return;
+    const sub = globalSubmissions.find(s => s._id === subId); 
+    if (!sub) return;
     
-    const tbody = document.getElementById('reviewTableBody'); tbody.innerHTML = '';
+    const tbody = document.getElementById('reviewTableBody'); 
+    tbody.innerHTML = '';
     let totalQuestions = sub.answers ? sub.answers.length : 0;
     
     if (sub.answers) { 
         sub.answers.forEach((ans, index) => { 
-            tbody.innerHTML += `<tr class="${ans.isCorrect ? '' : 'table-danger'}"><td class="fw-bold text-muted">${index + 1}</td><td class="small">${ans.numbersArray ? ans.numbersArray.join(', ') : 'N/A'}</td><td class="fw-bold fs-5 text-${ans.isCorrect ? 'success' : 'danger'}">${ans.studentAnswer}</td><td class="fw-bold fs-5">${ans.correctAnswer}</td><td>${ans.isCorrect ? '<i class="fa-solid fa-circle-check text-success fs-5"></i>' : '<i class="fa-solid fa-circle-xmark text-danger fs-5"></i>'}</td></tr>`; 
+            tbody.innerHTML += `
+                <tr class="${ans.isCorrect ? '' : 'table-danger'}">
+                    <td class="fw-bold text-muted">${index + 1}</td>
+                    <td class="small">${ans.numbersArray ? ans.numbersArray.join(', ') : 'N/A'}</td>
+                    <td class="fw-bold fs-5 text-${ans.isCorrect ? 'success' : 'danger'}">${ans.studentAnswer}</td>
+                    <td class="fw-bold fs-5">${ans.correctAnswer}</td>
+                    <td>${ans.isCorrect ? '<i class="fa-solid fa-circle-check text-success fs-5"></i>' : '<i class="fa-solid fa-circle-xmark text-danger fs-5"></i>'}</td>
+                </tr>`; 
         }); 
     }
 
@@ -306,13 +347,41 @@ window.viewDetails = function(subId) {
     else if (percentage >= 50) msg = "Good job! A little more practice and you'll be unstoppable! 💪";
     document.getElementById('cardMessage').innerText = msg;
 
+    // Share Button
     document.getElementById('waShareResultBtn').onclick = function() {
         const waText = `*AABFC Abacus Center*\n\nHello! I just completed the *${testTitle}* exam and scored *${sub.finalScore}/${totalQuestions} (${percentage}%)*! 🏆\n\n"${msg}"`;
         const waUrl = `https://wa.me/?text=${encodeURIComponent(waText)}`;
         window.open(waUrl, '_blank');
     };
 
+    // 🔥 Request Retake Logic
+    const retakeBtn = document.getElementById('requestRetakeBtn');
+    if (retakeBtn) {
+        retakeBtn.onclick = async function() {
+            if (!confirm("Send a request to the Admin to reset this test so you can try again?")) return;
+            
+            try {
+                // Using the route we just added to the backend!
+                const res = await fetch(`${BASE_URL}/api/student/submissions/${subId}/request-retake`, {
+                    method: 'PUT',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (res.ok) {
+                    alert("Retake request sent to Admin! Check back later.");
+                    bootstrap.Modal.getInstance(document.getElementById('reviewModal')).hide();
+                    loadDashboard();
+                } else {
+                    alert("Failed to send request.");
+                }
+            } catch (e) {
+                alert("Network error.");
+            }
+        };
+    }
+
     new bootstrap.Modal(document.getElementById('reviewModal')).show();
 }
 
+// Initial Boot
 loadDashboard();
