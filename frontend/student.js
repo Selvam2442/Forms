@@ -97,7 +97,6 @@ function renderDashboard() {
         let statusBadge = `<span class="badge bg-warning text-dark"><i class="fa-solid fa-clock me-1"></i>Pending Review</span>`;
         let actionBtn = `<button class="btn btn-light btn-sm text-muted fw-bold border disabled">Waiting</button>`;
         
-        // 🔥 Format Student Results directly on the card
         if (sub.status === 'graded') {
             const total = sub.answers ? sub.answers.length : 0;
             const pct = total > 0 ? Math.round((sub.finalScore / total) * 100) : 0;
@@ -204,17 +203,36 @@ window.renderQuestion = function() {
         <div class="d-flex gap-2 mt-4">
     `;
 
-    if (currentQuestionIndex > 0) html += `<button class="btn btn-outline-secondary btn-lg w-50 fw-bold shadow-sm" onclick="changeQuestion(-1)"><i class="fa-solid fa-arrow-left me-2"></i>Previous</button>`;
-    else html += `<button class="btn btn-outline-secondary btn-lg w-50 fw-bold shadow-sm disabled" style="opacity:0.4;">Previous</button>`;
+    // 🔥 FORCE ANSWER LOCKOUT LOGIC
+    const hasAnswer = savedAnswer !== null;
+    const nextDisabled = hasAnswer ? '' : 'disabled';
 
-    if (currentQuestionIndex < total - 1) html += `<button class="btn btn-primary btn-lg w-50 fw-bold shadow-sm" onclick="changeQuestion(1)">Next<i class="fa-solid fa-arrow-right ms-2"></i></button>`;
-    else html += `<button class="btn btn-success btn-lg w-50 fw-bold shadow-sm" onclick="submitTest()"><i class="fa-solid fa-check-double me-2"></i>Submit</button>`;
+    if (currentQuestionIndex > 0) {
+        html += `<button class="btn btn-outline-secondary btn-lg w-50 fw-bold shadow-sm" onclick="changeQuestion(-1)"><i class="fa-solid fa-arrow-left me-2"></i>Previous</button>`;
+    } else {
+        html += `<button class="btn btn-outline-secondary btn-lg w-50 fw-bold shadow-sm disabled" style="opacity:0.4;">Previous</button>`;
+    }
+
+    if (currentQuestionIndex < total - 1) {
+        html += `<button id="nextBtn" class="btn btn-primary btn-lg w-50 fw-bold shadow-sm" ${nextDisabled} onclick="changeQuestion(1)">Next<i class="fa-solid fa-arrow-right ms-2"></i></button>`;
+    } else {
+        html += `<button id="submitBtn" class="btn btn-success btn-lg w-50 fw-bold shadow-sm" ${nextDisabled} onclick="submitTest()"><i class="fa-solid fa-check-double me-2"></i>Submit</button>`;
+    }
 
     html += `</div>`;
     document.getElementById('activeTestQuestions').innerHTML = html;
 };
 
-window.saveAnswer = function(qId, val) { studentAnswers[qId] = val; };
+// 🔥 INSTANTLY UNLOCK BUTTONS WHEN CLICKED
+window.saveAnswer = function(qId, val) { 
+    studentAnswers[qId] = val; 
+    const nextBtn = document.getElementById('nextBtn');
+    if (nextBtn) nextBtn.removeAttribute('disabled');
+    
+    const submitBtn = document.getElementById('submitBtn');
+    if (submitBtn) submitBtn.removeAttribute('disabled');
+};
+
 window.changeQuestion = function(direction) { currentQuestionIndex += direction; renderQuestion(); };
 window.cancelTest = function() {
     if (!confirm("Quit test? All answers will be lost.")) return;
@@ -257,7 +275,6 @@ window.viewDetails = function(subId) {
     const testTitle = sub.testId ? sub.testId.title : 'Deleted Test';
     const studentName = document.getElementById('studentGreeting').innerText.replace('Welcome, ', '').trim();
     
-    // 🔥 Formatted Motivation Card Data: 3/5 (60%)
     const percentage = totalQuestions > 0 ? Math.round((sub.finalScore / totalQuestions) * 100) : 0;
     
     document.getElementById('cardStudentName').innerText = studentName;
