@@ -185,10 +185,22 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body bg-body">
+                    
+                    <div class="mb-3">
+                        <label class="small fw-bold text-muted mb-1">Operator / Type</label>
+                        <select id="genOperator" class="form-select fw-bold" onchange="document.getElementById('genRowsContainer').style.display = (this.value === 'addition' || this.value === 'mixed') ? 'block' : 'none';">
+                            <option value="addition">Addition Only (+)</option>
+                            <option value="mixed">Mixed (+ and -)</option>
+                            <option value="multiplication">Multiplication (×)</option>
+                            <option value="division">Division (÷)</option>
+                        </select>
+                    </div>
+
                     <div class="mb-3">
                         <label class="small fw-bold text-muted mb-1">Total Questions</label>
                         <input type="number" id="genCount" class="form-control fw-bold" value="10" min="1" max="100">
                     </div>
+                    
                     <div class="mb-3">
                         <label class="small fw-bold text-muted mb-1">Digit Size</label>
                         <select id="genDigits" class="form-select fw-bold">
@@ -198,10 +210,12 @@
                             <option value="mixed">Mixed (1 to 3 Digits)</option>
                         </select>
                     </div>
+                    
                     <div class="mb-3" id="genRowsContainer">
                         <label class="small fw-bold text-muted mb-1">Stack Size (Columns/Rows)</label>
                         <input type="number" id="genRows" class="form-control fw-bold" value="5" min="2" max="20" title="How many numbers in each addition stack">
                     </div>
+                    
                     <button class="btn btn-dark w-100 fw-bold mt-2 py-2 shadow-sm" onclick="generateSmartQuestions()" data-bs-dismiss="modal">Generate Questions</button>
                 </div>
             </div>

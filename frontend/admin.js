@@ -1,7 +1,6 @@
 const token = localStorage.getItem('token');
 const BASE_URL = 'https://forms-xg9n.onrender.com';
 
-// Security Check
 if (!token) window.location.href = 'index.html';
 
 document.getElementById('logoutBtn').addEventListener('click', () => { 
@@ -9,7 +8,6 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
     window.location.href = 'index.html'; 
 });
 
-// Global State
 let globalStudents = [];
 let globalManagedTests = [];
 let globalSubmissions = [];
@@ -195,15 +193,12 @@ function setMinDateLimits() {
     if (dueInput) dueInput.min = currentDateTime;
 }
 
-// Show/Hide "Rows" input in generator based on Test Type
+// Show/Hide "Rows" input based on global Test Type select
 document.getElementById('testTypeSelect')?.addEventListener('change', (e) => { 
     document.getElementById('questionsContainer').innerHTML = ''; 
     addQuestionCard(); 
-    const rowsContainer = document.getElementById('genRowsContainer');
-    if (rowsContainer) rowsContainer.style.display = e.target.value === 'addition' ? 'block' : 'none';
 });
 
-// The core function to build a manual card
 function addQuestionCard(existingNumbers = []) {
     const container = document.getElementById('questionsContainer'); 
     if (!container) return;
@@ -283,14 +278,20 @@ if (document.getElementById('addQuestionBtn')) {
     document.getElementById('addQuestionBtn').addEventListener('click', () => addQuestionCard()); 
 }
 
-// 🔥 SMART GENERATOR LOGIC
+// 🔥 UPGRADED SMART GENERATOR (Handles Operator properly)
 window.generateSmartQuestions = function() {
-    const testType = document.getElementById('testTypeSelect').value;
+    const operator = document.getElementById('genOperator').value;
     const count = parseInt(document.getElementById('genCount').value) || 10;
     const digits = document.getElementById('genDigits').value;
     const rows = parseInt(document.getElementById('genRows').value) || 5;
 
-    // Clear the default empty card if user hasn't typed anything yet
+    // 1. Sync the main Test Type Dropdown based on what they picked in the modal
+    const mainTestType = document.getElementById('testTypeSelect');
+    if (operator === 'multiplication') mainTestType.value = 'multiplication';
+    else if (operator === 'division') mainTestType.value = 'division';
+    else mainTestType.value = 'addition';
+
+    // 2. Clear the screen if there's only an empty card sitting there
     const container = document.getElementById('questionsContainer');
     if(container.children.length === 1) {
         const inputs = container.children[0].querySelectorAll('input[type="text"], input[type="number"]');
@@ -309,21 +310,23 @@ window.generateSmartQuestions = function() {
         return Math.floor(Math.random() * (max - min + 1)) + min;
     };
 
+    // 3. Loop and build
     for (let i = 0; i < count; i++) {
         let nums = [];
         
-        if (testType === 'addition') {
+        if (operator === 'addition' || operator === 'mixed') {
             for(let r = 0; r < rows; r++) {
                 let num = getRandomNum(digits);
-                if(r > 0 && Math.random() < 0.3) num = -num; 
+                // If they picked Mixed, throw in negative numbers randomly (except the first line)
+                if(operator === 'mixed' && r > 0 && Math.random() < 0.3) num = -num; 
                 nums.push(num);
             }
         } 
-        else if (testType === 'multiplication') {
+        else if (operator === 'multiplication') {
             nums.push(getRandomNum(digits));
             nums.push(getRandomNum(digits === '3' ? '2' : digits)); 
         } 
-        else if (testType === 'division') {
+        else if (operator === 'division') {
             const divisor = getRandomNum(digits === '3' ? '2' : digits);
             const answer = getRandomNum(digits);
             nums.push(divisor * answer); 
@@ -512,7 +515,6 @@ window.closePreviewModal = function() {
 async function loadTests() {
     const tbody = document.getElementById('testTableBody'); 
     
-    // Skeleton loader
     if (tbody) {
         tbody.innerHTML = `<tr><td colspan="5"><p class="placeholder-glow mb-1"><span class="placeholder col-8 bg-secondary rounded"></span></p></td></tr>`;
     }
@@ -644,7 +646,6 @@ function applyFilters() {
         
         const timeTaken = sub.timeTakenSeconds ? `${Math.floor(sub.timeTakenSeconds / 60)}m ${sub.timeTakenSeconds % 60}s` : 'Unknown Time';
         
-        // 🔥 Format Student Results to 3/5 (60%)
         const total = sub.answers ? sub.answers.length : 0; 
         const pct = total > 0 ? Math.round((sub.finalScore / total) * 100) : 0;
         const displayScore = total > 0 ? `${sub.finalScore}/${total} <span class="fs-6 fw-normal text-muted">(${pct}%)</span>` : `${sub.finalScore}`;
