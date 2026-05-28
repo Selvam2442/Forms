@@ -64,7 +64,10 @@ async function loadDashboard() {
 
 function renderDashboard() {
     const userPayload = JSON.parse(atob(token.split('.')[1]));
-    document.getElementById('studentGreeting').innerHTML = `<i class="fa-solid fa-user me-1"></i>Welcome, ${userPayload.name}`;
+    
+    // Shortened name for mobile display
+    const firstName = userPayload.name.split(' ')[0];
+    document.getElementById('studentGreeting').innerHTML = `<i class="fa-solid fa-user me-1"></i>Welcome, ${firstName}`;
     
     const availableContainer = document.getElementById('availableTestsContainer');
     const resultsContainer = document.getElementById('myResultsContainer');
@@ -123,6 +126,22 @@ function renderDashboard() {
             </div>`;
     });
     if (resultsShown === 0) resultsContainer.innerHTML = `<div class="alert alert-light border text-center text-muted small fw-bold">No results yet.</div>`;
+
+    // 🔥 NEW: Trigger Welcome Reminder Modal (Only once per session)
+    if (!sessionStorage.getItem('welcomeShown')) {
+        document.getElementById('welcomeModalName').innerText = `Welcome, ${firstName}!`;
+        
+        const reminderBox = document.getElementById('welcomeReminderBox');
+        if (testsShown > 0) {
+            reminderBox.classList.remove('d-none');
+            document.getElementById('welcomeTestCount').innerText = testsShown;
+        } else {
+            reminderBox.classList.add('d-none');
+        }
+        
+        new bootstrap.Modal(document.getElementById('welcomeModal')).show();
+        sessionStorage.setItem('welcomeShown', 'true');
+    }
 }
 
 // THE NEW MULTIPLE-CHOICE EXAM ENGINE

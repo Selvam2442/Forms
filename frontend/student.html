@@ -10,12 +10,23 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
+        .custom-radio .form-check-input {
+            width: 1.5em;
+            height: 1.5em;
+            cursor: pointer;
+        }
+
+        .custom-radio .form-check-label {
+            margin-left: 10px;
+            cursor: pointer;
+            padding-top: 3px;
+        }
+
         .abacus-numbers {
             letter-spacing: 2px;
             line-height: 2.2;
         }
 
-        /* Smooth transition for the progress bar */
         .progress-bar {
             transition: width 0.4s ease;
         }
@@ -34,15 +45,18 @@
 
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
         <div class="container-fluid px-3">
-            <span class="navbar-brand fw-bold fs-5 text-white"><i class="fa-solid fa-graduation-cap me-2"></i>Student
-                Portal</span>
+            <span class="navbar-brand fw-bold fs-5 text-white d-none d-sm-block"><i
+                    class="fa-solid fa-graduation-cap me-2"></i>Student Portal</span>
+            <span class="navbar-brand fw-bold fs-5 text-white d-sm-none"><i
+                    class="fa-solid fa-graduation-cap"></i></span>
+
             <div class="d-flex align-items-center">
-                <span class="badge bg-warning text-dark me-3 fs-6 rounded-pill shadow-sm" id="streakDisplay"
-                    style="display:none;">
-                    <i class="fa-solid fa-fire text-danger"></i> <span id="streakCount">0</span> Day Streak
+                <!-- 🔥 FIX: Mobile Name Visibility -->
+                <span class="text-white me-3 fw-bold text-truncate" id="studentGreeting"
+                    style="max-width: 150px; font-size: 0.95rem;">
+                    <i class="fa-solid fa-user me-1"></i>Welcome
                 </span>
-                <span class="text-white me-3 fw-bold d-none d-sm-inline" id="studentGreeting"><i
-                        class="fa-solid fa-user me-1"></i>Welcome</span>
+
                 <button class="btn btn-light btn-sm fw-bold px-3 text-primary" id="logoutBtn">
                     <i class="fa-solid fa-power-off d-sm-none"></i><span class="d-none d-sm-inline"><i
                             class="fa-solid fa-right-from-bracket me-2"></i>Logout</span>
@@ -66,7 +80,6 @@
 
     <div class="container mt-4 d-none" id="testTakingSection">
         <div class="card border-0 shadow-lg rounded-4 p-4 mx-auto bg-body" style="max-width: 550px;">
-
             <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-3">
                 <div>
                     <h5 class="fw-bold text-primary mb-1" id="activeTestTitle">Test Title</h5>
@@ -75,30 +88,54 @@
                 </div>
                 <button class="btn btn-outline-danger btn-sm fw-bold px-3" onclick="cancelTest()">Quit</button>
             </div>
-
             <div class="progress mb-4 bg-light shadow-inner" style="height: 10px; border-radius: 10px;">
                 <div class="progress-bar bg-success rounded-pill" id="testProgressBar" role="progressbar"
                     style="width: 0%;"></div>
             </div>
-
             <div id="activeTestQuestions"></div>
-
         </div>
     </div>
 
+    <!-- 🔥 NEW: Welcome & Reminder Modal -->
+    <div class="modal fade" id="welcomeModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header border-0 pb-0">
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center pt-0 pb-4 px-4">
+                    <div class="display-1 text-primary mb-3"><i class="fa-solid fa-hand-sparkles"></i></div>
+                    <h3 class="fw-bold mb-1" id="welcomeModalName">Welcome Back!</h3>
+                    <p class="text-muted mb-4">Ready to crush some math today?</p>
+
+                    <div id="welcomeReminderBox"
+                        class="bg-warning-subtle text-dark p-3 rounded-3 mb-4 d-none border border-warning shadow-sm">
+                        <i class="fa-solid fa-bell text-warning fs-3 mb-2"></i>
+                        <h5 class="fw-bold mb-1">Reminder!</h5>
+                        <p class="mb-0">You have <strong id="welcomeTestCount" class="fs-5 text-danger">0</strong> new
+                            test(s) waiting for you.</p>
+                    </div>
+
+                    <button class="btn btn-primary btn-lg w-100 fw-bold rounded-pill" data-bs-dismiss="modal">Let's
+                        Go!</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Review Modal -->
     <div class="modal fade" id="reviewModal" tabindex="-1">
         <div class="modal-dialog modal-lg">
             <div class="modal-content border-0 shadow">
                 <div class="modal-header bg-primary text-white border-0">
-                    <h5 class="modal-title fw-bold">Performance Review</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    <h5 class="modal-title fw-bold">Performance Review</h5><button type="button"
+                        class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body bg-body">
-
                     <div id="motivationCard"
                         class="card border-0 shadow-sm rounded-4 mb-4 text-white p-4 text-center position-relative overflow-hidden"
-                        style="background: linear-gradient(135deg, #0d6efd, #6610f2);">
-                        <i class="fa-solid fa-trophy position-absolute"
+                        style="background: linear-gradient(135deg, #0d6efd, #6610f2);"><i
+                            class="fa-solid fa-trophy position-absolute"
                             style="top: -20px; right: -20px; opacity: 0.1; font-size: 150px;"></i>
                         <h6 class="fw-bold text-uppercase mb-1" style="letter-spacing: 2px; color: #e0e0e0;">AABFC
                             Abacus Center</h6>
@@ -107,13 +144,11 @@
                         <div class="display-3 fw-bold mb-1" id="cardScore"
                             style="text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">0</div>
                         <div class="fw-bold fs-5 text-warning mb-3" id="cardTestName">Test Name</div>
-                        <p class="mb-0 fs-6 opacity-75" id="cardMessage">Keep up the fantastic work!</p>
-                        <button class="btn btn-light text-success fw-bold rounded-pill mt-4 mx-auto px-4 shadow-sm"
-                            id="waShareResultBtn">
-                            <i class="fa-brands fa-whatsapp fs-5 me-2 align-middle"></i>Share via WhatsApp
-                        </button>
+                        <p class="mb-0 fs-6 opacity-75" id="cardMessage">Keep up the fantastic work!</p><button
+                            class="btn btn-light text-success fw-bold rounded-pill mt-4 mx-auto px-4 shadow-sm"
+                            id="waShareResultBtn"><i class="fa-brands fa-whatsapp fs-5 me-2 align-middle"></i>Share via
+                            WhatsApp</button>
                     </div>
-
                     <h5 class="fw-bold text-dark mb-3">Answer Breakdown</h5>
                     <div class="table-responsive bg-body rounded-3 p-2 shadow-sm border">
                         <table class="table table-borderless table-hover align-middle text-center mb-0">
@@ -129,7 +164,6 @@
                             <tbody id="reviewTableBody"></tbody>
                         </table>
                     </div>
-
                 </div>
             </div>
         </div>

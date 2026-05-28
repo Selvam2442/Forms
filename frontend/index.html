@@ -125,65 +125,58 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Check for Service Worker (PWA installability)
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js').catch(err => console.log('SW registration failed'));
+        if ('serviceWorker' in navigator) { 
+            navigator.serviceWorker.register('sw.js').catch(err => console.log('SW registration failed')); 
         }
 
         const BASE_URL = 'https://forms-xg9n.onrender.com';
+        
+        // 🔥 NEW: AUTO-LOGIN REDIRECT
+        // If they already have a token, skip the login screen!
+        const existingToken = localStorage.getItem('token');
+        if (existingToken) {
+            try {
+                const payload = JSON.parse(atob(existingToken.split('.')[1]));
+                window.location.href = payload.role === 'admin' ? 'admin.html' : 'student.html';
+            } catch(e) {
+                localStorage.removeItem('token'); // Clear it if it's broken
+            }
+        }
 
-        // 🔥 Universal Password Visibility Toggle Function
         function togglePassword(inputId, buttonElement) {
             const input = document.getElementById(inputId);
             const icon = buttonElement.querySelector('i');
-
             if (input.type === 'password') {
-                input.type = 'text';
-                icon.classList.remove('fa-eye');
-                icon.classList.add('fa-eye-slash');
+                input.type = 'text'; icon.classList.remove('fa-eye'); icon.classList.add('fa-eye-slash');
             } else {
-                input.type = 'password';
-                icon.classList.remove('fa-eye-slash');
-                icon.classList.add('fa-eye');
+                input.type = 'password'; icon.classList.remove('fa-eye-slash'); icon.classList.add('fa-eye');
             }
         }
 
-        // Authentication Engine
         async function handleLogin(e, role) {
             e.preventDefault();
-
-            // Show wake-up loader
             document.getElementById('globalLoader').classList.remove('d-none');
-
             const identifier = role === 'student' ? document.getElementById('stuRollNumber').value : document.getElementById('adminUser').value;
             const secret = role === 'student' ? document.getElementById('stuPin').value : document.getElementById('adminPass').value;
-
+            
             try {
-                const res = await fetch(`${BASE_URL}/api/auth/login`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ role, identifier, secret })
+                const res = await fetch(`${BASE_URL}/api/auth/login`, { 
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ role, identifier, secret }) 
                 });
-
                 const data = await res.json();
-
-                if (res.ok) {
-                    // Save Token and Redirect
-                    localStorage.setItem('token', data.token);
-                    window.location.href = role === 'student' ? 'student.html' : 'admin.html';
-                } else {
-                    // Hide loader and show error
-                    document.getElementById('globalLoader').classList.add('d-none');
-                    alert(data.error || "Invalid credentials.");
+                if (res.ok) { 
+                    localStorage.setItem('token', data.token); 
+                    window.location.href = role === 'student' ? 'student.html' : 'admin.html'; 
+                } else { 
+                    document.getElementById('globalLoader').classList.add('d-none'); alert(data.error || "Invalid credentials."); 
                 }
-            } catch (err) {
-                document.getElementById('globalLoader').classList.add('d-none');
-                alert("Server connection error. Please try again.");
+            } catch (err) { 
+                document.getElementById('globalLoader').classList.add('d-none'); alert("Server connection error."); 
             }
         }
 
-        // Event Listeners
         document.getElementById('studentLoginForm').addEventListener('submit', (e) => handleLogin(e, 'student'));
         document.getElementById('adminLoginForm').addEventListener('submit', (e) => handleLogin(e, 'admin'));
     </script>
