@@ -1,6 +1,7 @@
 const token = localStorage.getItem('token');
 const BASE_URL = 'https://forms-xg9n.onrender.com';
 
+// Security Check
 if (!token) window.location.href = 'index.html';
 
 document.getElementById('logoutBtn').addEventListener('click', () => { 
@@ -8,6 +9,7 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
     window.location.href = 'index.html'; 
 });
 
+// Global State
 let globalStudents = [];
 let globalManagedTests = [];
 let globalSubmissions = [];
@@ -139,6 +141,7 @@ window.deleteStudent = async function(id) {
     loadStudents(); 
 };
 
+
 // ==========================================
 // 2. EXPORTS & WHATSAPP
 // ==========================================
@@ -174,6 +177,7 @@ window.shareTestToWhatsApp = function(testTitle) {
     const text = `*AABFC Abacus Center*\n\n📢 *New Test Available!*\n\nTitle: *${testTitle}*\n\nPlease log in to your student portal to complete your assignment now.\n🔗 ${window.location.origin}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
 };
+
 
 // ==========================================
 // 3. QUIZ BUILDER & SMART GENERATOR LOGIC
@@ -508,6 +512,7 @@ window.closePreviewModal = function() {
     bootstrap.Modal.getInstance(document.getElementById('previewModal')).hide(); 
 };
 
+
 // ==========================================
 // 5. TEST MANAGEMENT & COMPLETION TRACKER
 // ==========================================
@@ -610,6 +615,7 @@ window.viewTestTracker = function(testId) {
 
     new bootstrap.Modal(document.getElementById('trackerModal')).show();
 };
+
 
 // ==========================================
 // 6. SUBMISSIONS & CHARTS LOGIC
@@ -814,10 +820,87 @@ function renderCharts(submissions) {
 const dashboardTab = document.getElementById('dashboard-tab'); 
 if (dashboardTab) dashboardTab.addEventListener('shown.bs.tab', function () { renderCharts(globalSubmissions); });
 
+// ==========================================
+// 7. SECURITY & PASSWORD SETTINGS
+// ==========================================
+async function loadSecurityInfo() {
+    const textEl = document.getElementById('lastUpdatedText');
+    if (!textEl) return;
+
+    try {
+        const res = await fetch(`${BASE_URL}/api/admin/password-info`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+            const data = await res.json();
+            if (data.lastUpdated) {
+                const formattedDate = new Date(data.lastUpdated).toLocaleString(undefined, {
+                    year: 'numeric', month: 'short', day: 'numeric', 
+                    hour: '2-digit', minute: '2-digit'
+                });
+                textEl.innerHTML = `<i class="fa-solid fa-clock-rotate-left me-1"></i>Last Updated: ${formattedDate}`;
+                textEl.classList.replace('text-dark', 'text-success');
+            } else {
+                textEl.innerHTML = `<i class="fa-solid fa-circle-info me-1"></i>Last Updated: Never`;
+            }
+        }
+    } catch (e) {
+        textEl.innerHTML = `<i class="fa-solid fa-triangle-exclamation me-1 text-danger"></i>Sync Error`;
+    }
+}
+
+if (document.getElementById('changePasswordForm')) {
+    document.getElementById('changePasswordForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const oldPassword = document.getElementById('oldAdminPassword').value;
+        const newPassword = document.getElementById('newAdminPassword').value;
+        const confirmPassword = document.getElementById('confirmAdminPassword').value;
+        
+        if (newPassword !== confirmPassword) {
+            return alert("New Passwords do not match! Please check your typing.");
+        }
+        if (oldPassword === newPassword) {
+            return alert("Your new password cannot be exactly the same as your old password.");
+        }
+        
+        try {
+            const res = await fetch(`${BASE_URL}/api/admin/change-password`, {
+                method: 'PUT',
+                headers: { 
+                    'Content-Type': 'application/json', 
+                    'Authorization': `Bearer ${token}` 
+                },
+                body: JSON.stringify({ oldPassword, newPassword })
+            });
+            
+            const data = await res.json();
+            
+            if (res.ok) {
+                alert("Security Alert: Admin password has been successfully updated!");
+                document.getElementById('changePasswordForm').reset();
+                loadSecurityInfo(); 
+            } else {
+                alert(data.error || "Failed to update password. Did you enter the correct old password?");
+            }
+        } catch (error) {
+            alert("Network error. Could not reach the server.");
+        }
+    });
+}
+
+// ==========================================
+// 8. INITIALIZATION
+// ==========================================
 async function initializeAdminDashboard() {
     try { 
         setMinDateLimits(); 
-        await Promise.all([loadStudents(), loadTests(), renderReviewEcosystem()]); 
+        await Promise.all([
+            loadStudents(), 
+            loadTests(), 
+            renderReviewEcosystem(), 
+            loadSecurityInfo()
+        ]); 
     } 
     catch (e) { console.error("Error loading admin data"); } 
     finally { 

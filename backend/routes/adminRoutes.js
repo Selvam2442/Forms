@@ -1,81 +1,158 @@
 const express = require('express');
 const router = express.Router();
-const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+// IMPORTANT: Adjust these paths if your models are located elsewhere
+const User = require('../models/User'); 
 const Test = require('../models/Test');
 const Submission = require('../models/Submission');
 
-const verifyAdmin = (req, res, next) => {
-    const authHeader = req.headers['authorization'];
-    if (!authHeader) return res.status(403).json({ error: "Access Denied." });
-    const token = authHeader.split(' ')[1];
+// ==========================================
+// 1. SECURITY & PASSWORD MANAGEMENT
+// ==========================================
+router.get('/password-info', async (req, res) => {
     try {
-        const verified = jwt.verify(token, process.env.JWT_SECRET || 'supersecret');
-        if (verified.role !== 'admin') return res.status(403).json({ error: "Admin access required." });
-        req.user = verified;
-        next();
-    } catch (error) { res.status(401).json({ error: "Invalid token." }); }
-};
+        const admin = await User.findOne({ role: 'admin' }); 
+        if (!admin) return res.status(404).json({ error: "Admin not found." });
+        res.status(200).json({ lastUpdated: admin.lastPasswordUpdate || null });
+    } catch (error) {
+        res.status(500).json({ error: "Server error retrieving security info." });
+    }
+});
 
-router.use(verifyAdmin);
+router.put('/change-password', async (req, res) => {
+    try {
+        const { oldPassword, newPassword } = req.body;
+        const admin = await User.findOne({ role: 'admin' });
 
-// STUDENTS
+        if (!admin) return res.status(404).json({ error: "Admin not found." });
+
+        if (admin.secret !== oldPassword) {
+            return res.status(400).json({ error: "Incorrect Old Password! Request denied." });
+        }
+
+        admin.secret = newPassword;
+        admin.lastPasswordUpdate = new Date();
+        await admin.save();
+
+        res.status(200).json({ message: "Password updated successfully!", lastUpdated: admin.lastPasswordUpdate });
+    } catch (error) {
+        res.status(500).json({ error: "Server error updating password." });
+    }
+});
+
+// ==========================================
+// 2. STUDENT MANAGEMENT
+// ==========================================
+router.get('/students', async (req, res) => {
+    try {
+        // Assuming students are saved in the User model with role 'student'
+        const students = await User.find({ role: 'student' }).sort({ createdAt: -1 });
+        res.status(200).json(students);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 router.post('/students', async (req, res) => {
     try {
         const { name, pin } = req.body;
-        if (!name || !pin) return res.status(400).json({ error: "Name and PIN required" });
-        const count = await User.countDocuments({ role: 'student' });
-        const rollNumber = `AB${String(count + 1).padStart(3, '0')}`;
-        const newStudent = new User({ name, rollNumber, pin, role: 'student' });
+        // Generate a unique roll number (e.g. STU + random 4 digits)
+        const rollNumber = 'STU' + Math.floor(1000 + Math.random() * 9000);
+        
+        const newStudent = new User({
+            name,
+            secret: pin,
+            pin: pin, // Depending on your schema setup
+            identifier: rollNumber,
+            rollNumber: rollNumber,
+            role: 'student'
+        });
         await newStudent.save();
-        res.status(201).json({ message: "Created!", student: newStudent });
-    } catch (error) { res.status(500).json({ error: "Server error" }); }
-});
-router.put('/students/:rollNumber/pin', async (req, res) => {
-    try {
-        const { pin } = req.body; await User.findOneAndUpdate({ rollNumber: req.params.rollNumber, role: 'student' }, { pin });
-        res.status(200).json({ message: "PIN Updated!" });
-    } catch (error) { res.status(500).json({ error: "Server error" }); }
-});
-router.get('/students', async (req, res) => {
-    try { const students = await User.find({ role: 'student' }).sort({ rollNumber: 1 }); res.status(200).json(students); } catch (error) { res.status(500).json({ error: "Server error" }); }
-});
-router.delete('/students/:rollNumber', async (req, res) => {
-    try { await User.findOneAndDelete({ rollNumber: req.params.rollNumber, role: 'student' }); res.status(200).json({ message: "Student deleted!" }); } catch (error) { res.status(500).json({ error: "Server error" }); }
+        res.status(201).json({ message: "Student created", student: newStudent });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 });
 
-// TESTS
-// TESTS
+router.put('/students/:id/pin', async (req, res) => {
+    try {
+        const { pin } = req.body;
+        await User.findOneAndUpdate({ rollNumber: req.params.id }, { secret: pin, pin: pin });
+        res.status(200).json({ message: "PIN updated successfully" });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+router.delete('/students/:id', async (req, res) => {
+    try {
+        await User.findOneAndDelete({ rollNumber: req.params.id });
+        res.status(200).json({ message: "Student deleted" });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// ==========================================
+// 3. TEST MANAGEMENT (With Math Engine)
+// ==========================================
+router.get('/tests', async (req, res) => {
+    try {
+        const tests = await Test.find().sort({ createdAt: -1 });
+        res.status(200).json(tests);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 router.post('/tests', async (req, res) => {
     try {
         const { title, testType, timeLimitMinutes, questions, isActive, availableFrom, dueDate, assignedTo } = req.body;
         
-        // 🔥 NEW MATH ENGINE
+        // 🔥 MATHEMATICS ENGINE
         const processedQuestions = questions.map((q, index) => {
             let correctAns = 0;
-            if (testType === 'multiplication') correctAns = q.numbersArray[0] * q.numbersArray[1];
-            else if (testType === 'division') correctAns = q.numbersArray[0] / q.numbersArray[1];
-            else correctAns = q.numbersArray.reduce((sum, num) => sum + num, 0);
-            
+            if (testType === 'multiplication') {
+                correctAns = q.numbersArray[0] * q.numbersArray[1];
+            } else if (testType === 'division') {
+                correctAns = q.numbersArray[0] / q.numbersArray[1];
+            } else {
+                correctAns = q.numbersArray.reduce((sum, num) => sum + num, 0);
+            }
             return { questionId: `Q${index + 1}`, numbersArray: q.numbersArray, correctAnswer: correctAns };
         });
 
-        const newTest = new Test({ title, testType: testType || 'addition', timeLimitMinutes, assignedTo: assignedTo || [], questions: processedQuestions, isActive, availableFrom: availableFrom ? new Date(availableFrom) : null, dueDate: dueDate ? new Date(dueDate) : null });
-        await newTest.save(); res.status(201).json({ message: "Test saved!", test: newTest });
-    } catch (error) { res.status(500).json({ error: error.message }); }
+        const newTest = new Test({ 
+            title, 
+            testType: testType || 'addition', 
+            timeLimitMinutes, 
+            assignedTo: assignedTo || [], 
+            questions: processedQuestions, 
+            isActive, 
+            availableFrom: availableFrom ? new Date(availableFrom) : null, 
+            dueDate: dueDate ? new Date(dueDate) : null 
+        });
+        
+        await newTest.save(); 
+        res.status(201).json({ message: "Test saved!", test: newTest });
+    } catch (error) { 
+        res.status(500).json({ error: error.message }); 
+    }
 });
 
 router.put('/tests/:id', async (req, res) => {
     try {
         const { title, testType, timeLimitMinutes, questions, isActive, availableFrom, dueDate, assignedTo } = req.body;
         
-        // 🔥 NEW MATH ENGINE
+        // 🔥 MATHEMATICS ENGINE
         const processedQuestions = questions.map((q, index) => {
             let correctAns = 0;
-            if (testType === 'multiplication') correctAns = q.numbersArray[0] * q.numbersArray[1];
-            else if (testType === 'division') correctAns = q.numbersArray[0] / q.numbersArray[1];
-            else correctAns = q.numbersArray.reduce((sum, num) => sum + num, 0);
-            
+            if (testType === 'multiplication') {
+                correctAns = q.numbersArray[0] * q.numbersArray[1];
+            } else if (testType === 'division') {
+                correctAns = q.numbersArray[0] / q.numbersArray[1];
+            } else {
+                correctAns = q.numbersArray.reduce((sum, num) => sum + num, 0);
+            }
             return { questionId: `Q${index + 1}`, numbersArray: q.numbersArray, correctAnswer: correctAns };
         });
         
@@ -84,53 +161,110 @@ router.put('/tests/:id', async (req, res) => {
             availableFrom: availableFrom ? new Date(availableFrom) : null, dueDate: dueDate ? new Date(dueDate) : null
         });
         res.status(200).json({ message: "Test updated successfully!" });
-    } catch (error) { res.status(500).json({ error: "Server error updating test." }); }
-});
-// 🔥 NEW: EDIT TEST ROUTE
-router.put('/tests/:id', async (req, res) => {
-    try {
-        const { title, timeLimitMinutes, questions, isActive, availableFrom, dueDate, assignedTo } = req.body;
-        const processedQuestions = questions.map((q, index) => ({ questionId: `Q${index + 1}`, numbersArray: q.numbersArray, correctAnswer: q.numbersArray.reduce((sum, num) => sum + num, 0) }));
-        
-        await Test.findByIdAndUpdate(req.params.id, {
-            title, timeLimitMinutes, questions: processedQuestions, isActive, assignedTo: assignedTo || [],
-            availableFrom: availableFrom ? new Date(availableFrom) : null, dueDate: dueDate ? new Date(dueDate) : null
-        });
-        res.status(200).json({ message: "Test updated successfully!" });
-    } catch (error) { res.status(500).json({ error: "Server error updating test." }); }
+    } catch (error) { 
+        res.status(500).json({ error: "Server error updating test." }); 
+    }
 });
 
-router.get('/tests', async (req, res) => {
-    try { const tests = await Test.find().sort({ createdAt: -1 }); res.status(200).json(tests); } catch (error) { res.status(500).json({ error: "Server error" }); }
-});
 router.put('/tests/:id/toggle', async (req, res) => {
-    try { const test = await Test.findById(req.params.id); test.isActive = !test.isActive; await test.save(); res.status(200).json({ message: "Status updated!", isActive: test.isActive }); } catch (error) { res.status(500).json({ error: "Server error" }); }
+    try {
+        const test = await Test.findById(req.params.id);
+        test.isActive = !test.isActive;
+        await test.save();
+        res.status(200).json({ message: "Test visibility toggled" });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 });
+
 router.delete('/tests/:id', async (req, res) => {
-    try { await Test.findByIdAndDelete(req.params.id); await Submission.deleteMany({ testId: req.params.id }); res.status(200).json({ message: "Test deleted." }); } catch (error) { res.status(500).json({ error: "Server error" }); }
+    try {
+        await Test.findByIdAndDelete(req.params.id);
+        // Cascade delete submissions related to this test
+        await Submission.deleteMany({ testId: req.params.id });
+        res.status(200).json({ message: "Test and related submissions deleted" });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 });
 
-// SUBMISSIONS
+// ==========================================
+// 4. SUBMISSION & GRADING MANAGEMENT
+// ==========================================
 router.get('/submissions', async (req, res) => {
-    try { const submissions = await Submission.find().populate('testId', 'title').sort({ submitTime: -1 }); res.status(200).json(submissions); } catch (error) { res.status(500).json({ error: "Server error" }); }
-});
-router.put('/submissions/:id/approve', async (req, res) => {
-    try { const submission = await Submission.findById(req.params.id); submission.status = 'graded'; submission.adminFeedback = req.body.feedback || 'Great job!'; await submission.save(); res.status(200).json({ message: "Approved!" }); } catch (error) { res.status(500).json({ error: "Server error" }); }
-});
-router.put('/submissions/approve-bulk', async (req, res) => {
-    try { const { submissionIds } = req.body; await Submission.updateMany({ _id: { $in: submissionIds } }, { $set: { status: 'graded', adminFeedback: 'Approved by Instructor' } }); res.status(200).json({ message: "Approved!" }); } catch (error) { res.status(500).json({ error: "Server error" }); }
-});
-router.delete('/submissions/:id/reset', async (req, res) => {
-    try { await Submission.findByIdAndDelete(req.params.id); res.status(200).json({ message: "Reset successful." }); } catch (error) { res.status(500).json({ error: "Server error" }); }
+    try {
+        const submissions = await Submission.find().populate('testId', 'title timeLimitMinutes').sort({ submitTime: -1 });
+        res.status(200).json(submissions);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 });
 
-// LEADERBOARD
+router.put('/submissions/approve-bulk', async (req, res) => {
+    try {
+        const { submissionIds } = req.body;
+        await Submission.updateMany(
+            { _id: { $in: submissionIds } }, 
+            { $set: { status: 'graded', adminFeedback: "Bulk Approved" } }
+        );
+        res.status(200).json({ message: "Bulk approval successful" });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+router.put('/submissions/:id/approve', async (req, res) => {
+    try {
+        const { feedback } = req.body;
+        await Submission.findByIdAndUpdate(req.params.id, { status: 'graded', adminFeedback: feedback || "Approved" });
+        res.status(200).json({ message: "Submission approved" });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+router.delete('/submissions/:id/reset', async (req, res) => {
+    try {
+        // Wipes the submission completely so the student can take it again
+        await Submission.findByIdAndDelete(req.params.id);
+        res.status(200).json({ message: "Submission reset successfully" });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// ==========================================
+// 5. LEADERBOARD
+// ==========================================
 router.get('/leaderboard', async (req, res) => {
     try {
-        const submissions = await Submission.find({ status: 'graded' }).populate('testId', 'title').sort({ finalScore: -1, submitTime: 1 });
-        const groupedLeaderboard = {};
-        submissions.forEach(sub => { if (!sub.testId) return; const title = sub.testId.title; if (!groupedLeaderboard[title]) groupedLeaderboard[title] = []; if (groupedLeaderboard[title].length < 10) groupedLeaderboard[title].push(sub); });
-        res.status(200).json(groupedLeaderboard);
-    } catch (error) { res.status(500).json({ error: "Server error." }); }
+        const submissions = await Submission.find({ status: 'graded' }).populate('testId', 'title');
+        const grouped = {};
+        
+        submissions.forEach(sub => {
+            if (!sub.testId) return;
+            const testName = sub.testId.title;
+            if (!grouped[testName]) grouped[testName] = [];
+            grouped[testName].push({
+                studentName: sub.studentName,
+                finalScore: sub.finalScore,
+                timeTakenSeconds: sub.timeTakenSeconds
+            });
+        });
+
+        // Sort each test's leaderboard by score (desc) then time (asc)
+        for (const test in grouped) {
+            grouped[test].sort((a, b) => {
+                if (b.finalScore !== a.finalScore) return b.finalScore - a.finalScore;
+                return a.timeTakenSeconds - b.timeTakenSeconds; // Tie-breaker
+            });
+            grouped[test] = grouped[test].slice(0, 3); // Keep only Top 3
+        }
+        
+        res.status(200).json(grouped);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 });
+
 module.exports = router;
