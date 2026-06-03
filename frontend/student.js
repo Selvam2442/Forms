@@ -226,24 +226,30 @@ window.renderQuestion = function() {
     if (activeTest.answerFormat === 'direct') {
         inputAreaHtml = `
             <div class="mb-4">
-                <input type="text" id="directAnswerInput" class="form-control form-control-lg text-center fs-1 fw-bold bg-white shadow-sm border-primary mx-auto" style="max-width: 250px; height: 70px;" readonly value="${savedAnswer}" placeholder="?">
+                <input type="text" id="directAnswerInput" class="form-control form-control-lg text-center display-6 fw-bold bg-white shadow-sm border-primary mx-auto" style="max-width: 250px; height: 70px;" readonly value="${savedAnswer}" placeholder="?">
             </div>
             
-            <div class="row g-2 justify-content-center mx-auto mb-4" style="max-width: 350px;">
-                <div class="col-2 col-sm-2"><button class="btn btn-light w-100 fw-bold border fs-4 py-2 shadow-sm" onclick="typeDirect('1')">1</button></div>
-                <div class="col-2 col-sm-2"><button class="btn btn-light w-100 fw-bold border fs-4 py-2 shadow-sm" onclick="typeDirect('2')">2</button></div>
-                <div class="col-2 col-sm-2"><button class="btn btn-light w-100 fw-bold border fs-4 py-2 shadow-sm" onclick="typeDirect('3')">3</button></div>
-                <div class="col-2 col-sm-2"><button class="btn btn-light w-100 fw-bold border fs-4 py-2 shadow-sm" onclick="typeDirect('4')">4</button></div>
-                <div class="col-2 col-sm-2"><button class="btn btn-light w-100 fw-bold border fs-4 py-2 shadow-sm" onclick="typeDirect('5')">5</button></div>
-                
-                <div class="col-2 col-sm-2"><button class="btn btn-light w-100 fw-bold border fs-4 py-2 shadow-sm" onclick="typeDirect('6')">6</button></div>
-                <div class="col-2 col-sm-2"><button class="btn btn-light w-100 fw-bold border fs-4 py-2 shadow-sm" onclick="typeDirect('7')">7</button></div>
-                <div class="col-2 col-sm-2"><button class="btn btn-light w-100 fw-bold border fs-4 py-2 shadow-sm" onclick="typeDirect('8')">8</button></div>
-                <div class="col-2 col-sm-2"><button class="btn btn-light w-100 fw-bold border fs-4 py-2 shadow-sm" onclick="typeDirect('9')">9</button></div>
-                <div class="col-2 col-sm-2"><button class="btn btn-light w-100 fw-bold border fs-4 py-2 shadow-sm" onclick="typeDirect('0')">0</button></div>
-                
-                <div class="col-6"><button class="btn btn-danger w-100 fw-bold border fs-5 py-2 shadow-sm" onclick="clearDirect()">AC</button></div>
-                <div class="col-6"><button class="btn btn-warning w-100 fw-bold border fs-5 py-2 shadow-sm" onclick="eraseDirect()"><i class="fa-solid fa-delete-left"></i></button></div>
+            <div class="mx-auto mb-4" style="max-width: 280px;">
+                <div class="row g-2 mb-2">
+                    <div class="col-4"><button class="btn btn-light w-100 fw-bold border fs-3 py-3 shadow-sm rounded-3" onclick="typeDirect('1')">1</button></div>
+                    <div class="col-4"><button class="btn btn-light w-100 fw-bold border fs-3 py-3 shadow-sm rounded-3" onclick="typeDirect('2')">2</button></div>
+                    <div class="col-4"><button class="btn btn-light w-100 fw-bold border fs-3 py-3 shadow-sm rounded-3" onclick="typeDirect('3')">3</button></div>
+                </div>
+                <div class="row g-2 mb-2">
+                    <div class="col-4"><button class="btn btn-light w-100 fw-bold border fs-3 py-3 shadow-sm rounded-3" onclick="typeDirect('4')">4</button></div>
+                    <div class="col-4"><button class="btn btn-light w-100 fw-bold border fs-3 py-3 shadow-sm rounded-3" onclick="typeDirect('5')">5</button></div>
+                    <div class="col-4"><button class="btn btn-light w-100 fw-bold border fs-3 py-3 shadow-sm rounded-3" onclick="typeDirect('6')">6</button></div>
+                </div>
+                <div class="row g-2 mb-2">
+                    <div class="col-4"><button class="btn btn-light w-100 fw-bold border fs-3 py-3 shadow-sm rounded-3" onclick="typeDirect('7')">7</button></div>
+                    <div class="col-4"><button class="btn btn-light w-100 fw-bold border fs-3 py-3 shadow-sm rounded-3" onclick="typeDirect('8')">8</button></div>
+                    <div class="col-4"><button class="btn btn-light w-100 fw-bold border fs-3 py-3 shadow-sm rounded-3" onclick="typeDirect('9')">9</button></div>
+                </div>
+                <div class="row g-2">
+                    <div class="col-4"><button class="btn btn-danger w-100 fw-bold border fs-4 py-3 shadow-sm rounded-3" onclick="clearDirect()">AC</button></div>
+                    <div class="col-4"><button class="btn btn-light w-100 fw-bold border fs-3 py-3 shadow-sm rounded-3" onclick="typeDirect('0')">0</button></div>
+                    <div class="col-4"><button class="btn btn-warning w-100 fw-bold border fs-4 py-3 shadow-sm rounded-3" onclick="eraseDirect()"><i class="fa-solid fa-delete-left"></i></button></div>
+                </div>
             </div>
         `;
     } else {

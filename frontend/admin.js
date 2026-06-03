@@ -564,8 +564,30 @@ window.renderPreviewQuestion = function() {
     let inputAreaHtml = '';
     if (previewActiveTest.answerFormat === 'direct') {
         inputAreaHtml = `
-            <div class="mb-3">
-                <input type="text" class="form-control form-control-lg text-center fs-2 fw-bold bg-white mx-auto" style="max-width: 200px;" placeholder="Direct Keyboard Entry" readonly>
+            <div class="mb-4">
+                <input type="text" class="form-control form-control-lg text-center fs-3 fw-bold bg-white mx-auto" style="max-width: 250px; height: 60px;" placeholder="Direct Entry" readonly>
+            </div>
+            <div class="mx-auto mb-4" style="max-width: 280px; opacity: 0.8; pointer-events: none;">
+                <div class="row g-2 mb-2">
+                    <div class="col-4"><button class="btn btn-light w-100 fw-bold border fs-4 py-2 rounded-3">1</button></div>
+                    <div class="col-4"><button class="btn btn-light w-100 fw-bold border fs-4 py-2 rounded-3">2</button></div>
+                    <div class="col-4"><button class="btn btn-light w-100 fw-bold border fs-4 py-2 rounded-3">3</button></div>
+                </div>
+                <div class="row g-2 mb-2">
+                    <div class="col-4"><button class="btn btn-light w-100 fw-bold border fs-4 py-2 rounded-3">4</button></div>
+                    <div class="col-4"><button class="btn btn-light w-100 fw-bold border fs-4 py-2 rounded-3">5</button></div>
+                    <div class="col-4"><button class="btn btn-light w-100 fw-bold border fs-4 py-2 rounded-3">6</button></div>
+                </div>
+                <div class="row g-2 mb-2">
+                    <div class="col-4"><button class="btn btn-light w-100 fw-bold border fs-4 py-2 rounded-3">7</button></div>
+                    <div class="col-4"><button class="btn btn-light w-100 fw-bold border fs-4 py-2 rounded-3">8</button></div>
+                    <div class="col-4"><button class="btn btn-light w-100 fw-bold border fs-4 py-2 rounded-3">9</button></div>
+                </div>
+                <div class="row g-2">
+                    <div class="col-4"><button class="btn btn-danger w-100 fw-bold border fs-5 py-2 rounded-3">AC</button></div>
+                    <div class="col-4"><button class="btn btn-light w-100 fw-bold border fs-4 py-2 rounded-3">0</button></div>
+                    <div class="col-4"><button class="btn btn-warning w-100 fw-bold border fs-5 py-2 rounded-3"><i class="fa-solid fa-delete-left"></i></button></div>
+                </div>
             </div>`;
     } else {
         inputAreaHtml = `
