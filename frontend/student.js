@@ -10,8 +10,6 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
 
 let globalTests = [];
 let globalSubmissions = [];
-
-// Pagination State
 let activeTest = null;
 let currentQuestionIndex = 0;
 let studentAnswers = {}; 
@@ -86,12 +84,14 @@ function renderDashboard() {
         if (!completedTestIds.includes(test._id)) {
             testsShown++;
             const icon = test.testType === 'multiplication' ? '✖️' : test.testType === 'division' ? '➗' : '➕';
+            const formatTag = test.answerFormat === 'direct' ? '⌨️ Direct Entry' : '🔘 Multiple Choice';
+            
             availableContainer.innerHTML += `
                 <div class="card shadow-sm border-0 mb-3 bg-body rounded-3">
                     <div class="card-body d-flex justify-content-between align-items-center">
                         <div>
                             <h6 class="fw-bold mb-1 text-primary">${icon} ${test.title}</h6>
-                            <small class="text-muted"><i class="fa-solid fa-list-ol me-1"></i>${test.questions.length} Qs | <i class="fa-solid fa-stopwatch me-1"></i>${test.timeLimitMinutes}m</small>
+                            <small class="text-muted"><i class="fa-solid fa-list-ol me-1"></i>${test.questions.length} Qs | <i class="fa-solid fa-stopwatch me-1"></i>${test.timeLimitMinutes}m | <strong class="text-dark">${formatTag}</strong></small>
                         </div>
                         <button class="btn btn-primary btn-sm fw-bold px-3 shadow-sm rounded-pill" onclick="startTest('${test._id}')">Start</button>
                     </div>
@@ -162,7 +162,7 @@ window.startTest = function(testId) {
     studentAnswers = {};
 
     activeTest.questions.forEach(q => {
-        if (!q.options) {
+        if (!q.options && activeTest.answerFormat !== 'direct') {
             let realAns = 0;
             if (activeTest.testType === 'multiplication') realAns = q.numbersArray[0] * q.numbersArray[1];
             else if (activeTest.testType === 'division') realAns = q.numbersArray[0] / q.numbersArray[1];
@@ -170,10 +170,14 @@ window.startTest = function(testId) {
 
             const opts = new Set([realAns]);
             while(opts.size < 4) {
-                const offset = [1, -1, 10, -10, 5, -5][Math.floor(Math.random() * 6)];
+                const offset = [1, -1, 10, -10, 5, -5, 2, -2][Math.floor(Math.random() * 8)];
                 let fake = realAns + offset;
                 if (activeTest.testType === 'division') fake = Math.floor(fake);
-                opts.add(fake);
+                
+                // 🔥 NEW: Only add the fake option if it is 0 or greater
+                if (fake >= 0) {
+                    opts.add(fake);
+                }
             }
             q.options = Array.from(opts).sort(() => Math.random() - 0.5);
         }
@@ -207,7 +211,7 @@ window.startTest = function(testId) {
 window.renderQuestion = function() {
     const q = activeTest.questions[currentQuestionIndex];
     const total = activeTest.questions.length;
-    const savedAnswer = studentAnswers[q.questionId] !== undefined ? studentAnswers[q.questionId] : null;
+    const savedAnswer = studentAnswers[q.questionId] !== undefined && studentAnswers[q.questionId] !== null ? studentAnswers[q.questionId] : '';
 
     document.getElementById('testProgressBar').style.width = `${((currentQuestionIndex) / total) * 100}%`;
 
@@ -220,12 +224,42 @@ window.renderQuestion = function() {
         formatHtml = `<h1 class="fw-bold text-dark display-1 mb-0">${q.numbersArray[0]} <span class="text-primary">${sign}</span> ${q.numbersArray[1]}</h1>`;
     }
 
-    const optionsHtml = q.options.map((opt, i) => `
-        <label class="form-check custom-radio mb-3 p-3 border rounded-3 bg-white shadow-sm d-flex align-items-center w-100" style="cursor:pointer; transition: 0.2s;" onclick="playAudioClick()">
-            <input class="form-check-input fs-4 m-0" type="radio" name="q_answer" value="${opt}" ${savedAnswer == opt ? 'checked' : ''} onchange="saveAnswer('${q.questionId}', this.value)">
-            <span class="fs-4 fw-bold text-dark ms-3">${opt}</span>
-        </label>
-    `).join('');
+    let inputAreaHtml = '';
+
+    // 🔥 Check if the test is Direct Entry or MCQ
+    if (activeTest.answerFormat === 'direct') {
+        inputAreaHtml = `
+            <div class="mb-4">
+                <input type="text" id="directAnswerInput" class="form-control form-control-lg text-center fs-1 fw-bold bg-white shadow-sm border-primary mx-auto" style="max-width: 250px; height: 70px;" readonly value="${savedAnswer}" placeholder="?">
+            </div>
+            
+            <div class="row g-2 justify-content-center mx-auto mb-4" style="max-width: 350px;">
+                <div class="col-2 col-sm-2"><button class="btn btn-light w-100 fw-bold border fs-4 py-2 shadow-sm" onclick="typeDirect('1')">1</button></div>
+                <div class="col-2 col-sm-2"><button class="btn btn-light w-100 fw-bold border fs-4 py-2 shadow-sm" onclick="typeDirect('2')">2</button></div>
+                <div class="col-2 col-sm-2"><button class="btn btn-light w-100 fw-bold border fs-4 py-2 shadow-sm" onclick="typeDirect('3')">3</button></div>
+                <div class="col-2 col-sm-2"><button class="btn btn-light w-100 fw-bold border fs-4 py-2 shadow-sm" onclick="typeDirect('4')">4</button></div>
+                <div class="col-2 col-sm-2"><button class="btn btn-light w-100 fw-bold border fs-4 py-2 shadow-sm" onclick="typeDirect('5')">5</button></div>
+                
+                <div class="col-2 col-sm-2"><button class="btn btn-light w-100 fw-bold border fs-4 py-2 shadow-sm" onclick="typeDirect('6')">6</button></div>
+                <div class="col-2 col-sm-2"><button class="btn btn-light w-100 fw-bold border fs-4 py-2 shadow-sm" onclick="typeDirect('7')">7</button></div>
+                <div class="col-2 col-sm-2"><button class="btn btn-light w-100 fw-bold border fs-4 py-2 shadow-sm" onclick="typeDirect('8')">8</button></div>
+                <div class="col-2 col-sm-2"><button class="btn btn-light w-100 fw-bold border fs-4 py-2 shadow-sm" onclick="typeDirect('9')">9</button></div>
+                <div class="col-2 col-sm-2"><button class="btn btn-light w-100 fw-bold border fs-4 py-2 shadow-sm" onclick="typeDirect('0')">0</button></div>
+                
+                <div class="col-4"><button class="btn btn-danger w-100 fw-bold border fs-5 py-2 shadow-sm" onclick="clearDirect()">AC</button></div>
+                <div class="col-4"><button class="btn btn-secondary w-100 fw-bold border fs-5 py-2 shadow-sm" onclick="typeDirect('-')">-</button></div>
+                <div class="col-4"><button class="btn btn-warning w-100 fw-bold border fs-5 py-2 shadow-sm" onclick="eraseDirect()"><i class="fa-solid fa-delete-left"></i></button></div>
+            </div>
+        `;
+    } else {
+        const optionsHtml = q.options.map((opt, i) => `
+            <label class="form-check custom-radio mb-3 p-3 border rounded-3 bg-white shadow-sm d-flex align-items-center w-100" style="cursor:pointer; transition: 0.2s;" onclick="playAudioClick()">
+                <input class="form-check-input fs-4 m-0" type="radio" name="q_answer" value="${opt}" ${savedAnswer == opt ? 'checked' : ''} onchange="saveAnswer('${q.questionId}', this.value)">
+                <span class="fs-4 fw-bold text-dark ms-3">${opt}</span>
+            </label>
+        `).join('');
+        inputAreaHtml = `<div class="row justify-content-center"><div class="col-12 col-sm-8 text-start">${optionsHtml}</div></div>`;
+    }
 
     let html = `
         <div class="text-center mb-4">
@@ -233,13 +267,14 @@ window.renderQuestion = function() {
             <div class="card bg-body-secondary border-0 p-4 rounded-4 shadow-sm mb-4 d-flex flex-column align-items-center justify-content-center" style="min-height: 200px;">
                 ${formatHtml}
             </div>
-            <div class="row justify-content-center"><div class="col-12 col-sm-8 text-start">${optionsHtml}</div></div>
+            ${inputAreaHtml}
         </div>
         <div class="d-flex gap-2 mt-4">
     `;
 
-    const hasAnswer = savedAnswer !== null;
-    const nextDisabled = hasAnswer ? '' : 'disabled';
+    // Force answer lockout logic
+    const hasValidAnswer = savedAnswer !== null && savedAnswer !== '' && savedAnswer !== '-';
+    const nextDisabled = hasValidAnswer ? '' : 'disabled';
 
     if (currentQuestionIndex > 0) {
         html += `<button class="btn btn-outline-secondary btn-lg w-50 fw-bold shadow-sm" onclick="changeQuestion(-1)"><i class="fa-solid fa-arrow-left me-2"></i>Previous</button>`;
@@ -257,11 +292,41 @@ window.renderQuestion = function() {
     document.getElementById('activeTestQuestions').innerHTML = html;
 };
 
+// 🔥 CUSTOM KEYBOARD FUNCTIONS
+window.typeDirect = function(char) {
+    playAudioClick();
+    const input = document.getElementById('directAnswerInput');
+    if (char === '-' && input.value !== '') return; 
+    input.value += char;
+    saveAnswer(activeTest.questions[currentQuestionIndex].questionId, input.value);
+};
+
+window.clearDirect = function() {
+    playAudioClick();
+    const input = document.getElementById('directAnswerInput');
+    input.value = '';
+    studentAnswers[activeTest.questions[currentQuestionIndex].questionId] = null;
+    document.getElementById('nextBtn')?.setAttribute('disabled', 'true');
+    document.getElementById('submitBtn')?.setAttribute('disabled', 'true');
+};
+
+window.eraseDirect = function() {
+    playAudioClick();
+    const input = document.getElementById('directAnswerInput');
+    input.value = input.value.slice(0, -1);
+    if (input.value === '' || input.value === '-') {
+        studentAnswers[activeTest.questions[currentQuestionIndex].questionId] = null;
+        document.getElementById('nextBtn')?.setAttribute('disabled', 'true');
+        document.getElementById('submitBtn')?.setAttribute('disabled', 'true');
+    } else {
+        saveAnswer(activeTest.questions[currentQuestionIndex].questionId, input.value);
+    }
+};
+
 window.saveAnswer = function(qId, val) { 
     studentAnswers[qId] = val; 
     const nextBtn = document.getElementById('nextBtn');
     if (nextBtn) nextBtn.removeAttribute('disabled');
-    
     const submitBtn = document.getElementById('submitBtn');
     if (submitBtn) submitBtn.removeAttribute('disabled');
 };
@@ -348,11 +413,14 @@ window.viewDetails = function(subId) {
     document.getElementById('cardMessage').innerText = msg;
 
     // Share Button
-    document.getElementById('waShareResultBtn').onclick = function() {
-        const waText = `*AABFC Abacus Center*\n\nHello! I just completed the *${testTitle}* exam and scored *${sub.finalScore}/${totalQuestions} (${percentage}%)*! 🏆\n\n"${msg}"`;
-        const waUrl = `https://wa.me/?text=${encodeURIComponent(waText)}`;
-        window.open(waUrl, '_blank');
-    };
+    const waBtn = document.getElementById('waShareResultBtn');
+    if (waBtn) {
+        waBtn.onclick = function() {
+            const waText = `*AABFC Abacus Center*\n\nHello! I just completed the *${testTitle}* exam and scored *${sub.finalScore}/${totalQuestions} (${percentage}%)*! 🏆\n\n"${msg}"`;
+            const waUrl = `https://wa.me/?text=${encodeURIComponent(waText)}`;
+            window.open(waUrl, '_blank');
+        };
+    }
 
     // 🔥 Request Retake Logic
     const retakeBtn = document.getElementById('requestRetakeBtn');
@@ -361,7 +429,6 @@ window.viewDetails = function(subId) {
             if (!confirm("Send a request to the Admin to reset this test so you can try again?")) return;
             
             try {
-                // Using the route we just added to the backend!
                 const res = await fetch(`${BASE_URL}/api/student/submissions/${subId}/request-retake`, {
                     method: 'PUT',
                     headers: { 'Authorization': `Bearer ${token}` }

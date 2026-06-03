@@ -245,16 +245,31 @@ function addQuestionCard(existingNumbers = []) {
             </div>
         </div>`;
     
-    const ansInput = card.querySelector('.q-answer');
+const ansInput = card.querySelector('.q-answer');
+    
+    // 🔥 NEW: Helper function to toggle the red warning box
+    const checkNegative = (val) => {
+        if (typeof val === 'number' && val < 0) {
+            ansInput.classList.remove('bg-body', 'text-success');
+            ansInput.classList.add('bg-danger', 'text-white');
+            ansInput.value = val + ' (Invalid)';
+        } else {
+            ansInput.classList.remove('bg-danger', 'text-white');
+            ansInput.classList.add('bg-body', 'text-success');
+            ansInput.value = val;
+        }
+    };
     
     if (testType === 'addition') {
         const numInput = card.querySelector('.q-numbers');
         numInput.addEventListener('input', (e) => { 
             e.target.value = e.target.value.replace(/[^0-9,\- ]/g, ''); 
-            ansInput.value = e.target.value.split(',').reduce((t, v) => t + (parseInt(v.trim()) || 0), 0); 
+            const sum = e.target.value.split(',').reduce((t, v) => t + (parseInt(v.trim()) || 0), 0); 
+            checkNegative(sum);
         });
         if(existingNumbers.length > 0) {
-            ansInput.value = existingNumbers.reduce((t, v) => t + (parseInt(v) || 0), 0);
+            const sum = existingNumbers.reduce((t, v) => t + (parseInt(v) || 0), 0);
+            checkNegative(sum);
         }
     } else {
         const num1Input = card.querySelector('.q-num1'); 
@@ -262,10 +277,18 @@ function addQuestionCard(existingNumbers = []) {
         const calc = () => {
             const n1 = parseInt(num1Input.value) || 0; 
             const n2 = parseInt(num2Input.value) || 0;
+            let res = 0;
             if(testType === 'multiplication') {
-                ansInput.value = n1 * n2; 
+                res = n1 * n2; 
             } else {
-                ansInput.value = n2 !== 0 ? (n1 / n2).toFixed(2) : 'Error';
+                res = n2 !== 0 ? parseFloat((n1 / n2).toFixed(2)) : 'Error';
+            }
+            
+            if (res === 'Error') {
+                ansInput.value = res;
+                ansInput.classList.add('bg-danger', 'text-white');
+            } else {
+                checkNegative(res);
             }
         };
         num1Input.addEventListener('input', calc); 
@@ -282,7 +305,7 @@ if (document.getElementById('addQuestionBtn')) {
     document.getElementById('addQuestionBtn').addEventListener('click', () => addQuestionCard()); 
 }
 
-// 🔥 SMART GENERATOR LOGIC (Operator handled properly)
+// 🔥 SMART GENERATOR LOGIC
 window.generateSmartQuestions = function() {
     const operator = document.getElementById('genOperator').value;
     const count = parseInt(document.getElementById('genCount').value) || 10;
@@ -337,6 +360,7 @@ window.generateSmartQuestions = function() {
     }
 };
 
+// Form Submission (Test Creation / Updating)
 if (document.getElementById('createTestForm')) {
     document.getElementById('createTestForm').addEventListener('submit', async (e) => {
         e.preventDefault(); 
@@ -344,6 +368,8 @@ if (document.getElementById('createTestForm')) {
         const title = document.getElementById('testTitle').value; 
         const timeLimit = document.getElementById('testTime').value;
         const testType = document.getElementById('testTypeSelect').value;
+        // 🔥 Get the Answer Format (MCQ vs Direct)
+        const answerFormat = document.getElementById('answerFormatSelect').value;
         const availableFrom = document.getElementById('testAvailableFrom').value ? new Date(document.getElementById('testAvailableFrom').value).toISOString() : null; 
         const dueDate = document.getElementById('testDueDate').value ? new Date(document.getElementById('testDueDate').value).toISOString() : null;
         
@@ -367,7 +393,17 @@ if (document.getElementById('createTestForm')) {
 
         try {
             let res; 
-            const payload = { title, testType, timeLimitMinutes: parseInt(timeLimit), questions: questionsArray, isActive: !isDraftMode, availableFrom, dueDate, assignedTo };
+            const payload = { 
+                title, 
+                testType, 
+                answerFormat, // Inject Answer Format into payload
+                timeLimitMinutes: parseInt(timeLimit), 
+                questions: questionsArray, 
+                isActive: !isDraftMode, 
+                availableFrom, 
+                dueDate, 
+                assignedTo 
+            };
             
             if (editId) {
                 res = await fetch(`${BASE_URL}/api/admin/tests/${editId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify(payload) });
@@ -397,6 +433,7 @@ window.editTest = function(id) {
     document.getElementById('testTitle').value = test.title; 
     document.getElementById('testTime').value = test.timeLimitMinutes;
     document.getElementById('testTypeSelect').value = test.testType || 'addition';
+    document.getElementById('answerFormatSelect').value = test.answerFormat || 'mcq'; // Load Answer Format
     
     const setDate = (elId, dateStr) => { 
         if(dateStr) { 
@@ -468,6 +505,23 @@ window.renderPreviewQuestion = function() {
         formatHtml = `<h1 class="fw-bold text-dark display-1 mb-0">${q.numbersArray[0]} <span class="text-primary">${sign}</span> ${q.numbersArray[1]}</h1>`;
     }
 
+    // Determine how preview should look based on answer format
+    let inputAreaHtml = '';
+    if (previewActiveTest.answerFormat === 'direct') {
+        inputAreaHtml = `
+            <div class="mb-3">
+                <input type="text" class="form-control form-control-lg text-center fs-2 fw-bold bg-white mx-auto" style="max-width: 200px;" placeholder="Direct Keyboard Entry" readonly>
+            </div>`;
+    } else {
+        inputAreaHtml = `
+            <div class="row justify-content-center mb-4">
+                <div class="col-12 text-start">
+                    <label class="form-check custom-radio mb-2 p-3 border rounded-3 bg-white shadow-sm d-flex align-items-center"><input class="form-check-input fs-4 m-0" type="radio" name="prev_opt" checked><span class="fs-4 fw-bold text-dark ms-3">MCQ Option 1</span></label>
+                    <label class="form-check custom-radio mb-2 p-3 border rounded-3 bg-white shadow-sm d-flex align-items-center"><input class="form-check-input fs-4 m-0" type="radio" name="prev_opt"><span class="fs-4 fw-bold text-dark ms-3">MCQ Option 2</span></label>
+                </div>
+            </div>`;
+    }
+
     let html = `
         <div class="d-flex justify-content-between align-items-center mb-4">
             <span class="badge bg-secondary fs-6 shadow-sm"><i class="fa-solid fa-clock me-1"></i>Preview Mode</span>
@@ -478,12 +532,8 @@ window.renderPreviewQuestion = function() {
             ${formatHtml}
         </div>
         
-        <div class="row justify-content-center mb-4">
-            <div class="col-12 text-start">
-                <label class="form-check custom-radio mb-2 p-3 border rounded-3 bg-white shadow-sm d-flex align-items-center"><input class="form-check-input fs-4 m-0" type="radio" name="prev_opt" checked><span class="fs-4 fw-bold text-dark ms-3">Option 1</span></label>
-                <label class="form-check custom-radio mb-2 p-3 border rounded-3 bg-white shadow-sm d-flex align-items-center"><input class="form-check-input fs-4 m-0" type="radio" name="prev_opt"><span class="fs-4 fw-bold text-dark ms-3">Option 2</span></label>
-            </div>
-        </div>
+        ${inputAreaHtml}
+
         <div class="d-flex gap-2 mt-4">
     `;
 
@@ -512,7 +562,6 @@ window.closePreviewModal = function() {
     bootstrap.Modal.getInstance(document.getElementById('previewModal')).hide(); 
 };
 
-
 // ==========================================
 // 5. TEST MANAGEMENT & COMPLETION TRACKER
 // ==========================================
@@ -539,11 +588,14 @@ async function loadTests() {
                 const typeIcon = test.testType === 'multiplication' ? '✖️' : test.testType === 'division' ? '➗' : '➕';
                 const safeTitleStr = test.title.replace(/'/g, "\\'"); 
                 
+                // 🔥 Display Format Badge
+                const formatBadge = test.answerFormat === 'direct' ? `<span class="badge bg-dark ms-1"><i class="fa-solid fa-keyboard me-1"></i>Direct</span>` : `<span class="badge bg-secondary ms-1">MCQ</span>`;
+                
                 if (tbody) {
                     tbody.innerHTML += `
                         <tr>
                             <td class="small fw-bold">
-                                <div class="mb-1">${typeIcon} ${test.title}</div>
+                                <div class="mb-1">${typeIcon} ${test.title} ${formatBadge}</div>
                                 <div class="small text-muted fw-normal">${test.questions.length}Q | ${test.timeLimitMinutes}m</div>
                             </td>
                             <td>${badge}</td>

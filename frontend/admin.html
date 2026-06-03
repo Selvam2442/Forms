@@ -21,6 +21,7 @@
 </head>
 <body class="bg-light">
 
+    <!-- Loading Overlay -->
     <div id="globalLoader" class="position-fixed w-100 h-100 flex-column align-items-center justify-content-center bg-body" style="z-index: 9999; top: 0; left: 0; transition: opacity 0.5s ease; display: flex;">
         <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status"></div>
         <h4 class="text-primary fw-bold mb-2">Loading Center Data...</h4>
@@ -30,9 +31,7 @@
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
         <div class="container-fluid px-3">
             <span class="navbar-brand fw-bold fs-5"><i class="fa-solid fa-calculator me-2"></i>Abacus Admin</span>
-            <div>
-                <button class="btn btn-danger btn-sm fw-bold px-3" id="logoutBtn"><i class="fa-solid fa-right-from-bracket me-2"></i>Logout</button>
-            </div>
+            <div><button class="btn btn-danger btn-sm fw-bold px-3" id="logoutBtn"><i class="fa-solid fa-right-from-bracket me-2"></i>Logout</button></div>
         </div>
     </nav>
 
@@ -47,6 +46,7 @@
 
         <div class="tab-content" id="adminTabsContent">
             
+            <!-- TAB 1: DASHBOARD -->
             <div class="tab-pane fade show active" id="dashboard" role="tabpanel">
                 <div class="row g-4">
                     <div class="col-12 col-lg-8">
@@ -65,14 +65,12 @@
                             <div id="adminLeaderboardContainer"></div>
                         </div>
 
+                        <!-- Security Settings Card -->
                         <div class="card shadow-sm border-0 rounded-3 p-4 bg-body">
                             <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
                                 <h5 class="fw-bold text-danger mb-0"><i class="fa-solid fa-shield-halved me-2"></i>Security</h5>
-                                <small class="text-muted fw-bold badge bg-light border text-dark fs-6" id="lastUpdatedText">
-                                    <i class="fa-solid fa-clock-rotate-left me-1"></i>Checking...
-                                </small>
+                                <small class="text-muted fw-bold badge bg-light border text-dark fs-6" id="lastUpdatedText"><i class="fa-solid fa-clock-rotate-left me-1"></i>Checking...</small>
                             </div>
-                            
                             <form id="changePasswordForm">
                                 <div class="row g-3">
                                     <div class="col-12">
@@ -88,18 +86,16 @@
                                         <input type="password" id="confirmAdminPassword" class="form-control bg-body-secondary border-0" placeholder="Confirm Password" required>
                                     </div>
                                     <div class="col-12 mt-3 text-end">
-                                        <button type="submit" class="btn btn-danger fw-bold w-100 rounded-pill shadow-sm">
-                                            <i class="fa-solid fa-key me-2"></i>Update Password
-                                        </button>
+                                        <button type="submit" class="btn btn-danger fw-bold w-100 rounded-pill shadow-sm"><i class="fa-solid fa-key me-2"></i>Update Password</button>
                                     </div>
                                 </div>
                             </form>
                         </div>
-
                     </div>
                 </div>
             </div>
 
+            <!-- TAB 2: STUDENTS -->
             <div class="tab-pane fade" id="students" role="tabpanel">
                 <div class="row g-4">
                     <div class="col-12 col-md-5 col-lg-4">
@@ -127,6 +123,7 @@
                 </div>
             </div>
 
+            <!-- TAB 3: SUBMISSIONS -->
             <div class="tab-pane fade" id="submissions" role="tabpanel">
                 <div class="card shadow-sm border-0 bg-body p-3 mb-4 rounded-3">
                     <div class="row g-2 align-items-center">
@@ -146,6 +143,7 @@
                 <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3 mb-4" id="submissionsContainer"></div>
             </div>
 
+            <!-- TAB 4: TESTS & QUIZ BUILDER -->
             <div class="tab-pane fade" id="tests" role="tabpanel">
                 <div class="row g-4">
                     
@@ -162,13 +160,24 @@
                             <form id="createTestForm">
                                 <input type="hidden" id="editingTestId"> 
                                 
-                                <div class="mb-3 border-bottom pb-3">
-                                    <label class="small fw-bold text-muted mb-1"><i class="fa-solid fa-shapes me-1"></i>TEST TYPE:</label>
-                                    <select id="testTypeSelect" class="form-select border-primary shadow-sm fw-bold text-primary">
-                                        <option value="addition">➕ Addition / Subtraction</option>
-                                        <option value="multiplication">✖️ Multiplication</option>
-                                        <option value="division">➗ Division</option>
-                                    </select>
+                                <div class="row g-2 mb-3 border-bottom pb-3">
+                                    <div class="col-12 col-md-6">
+                                        <label class="small fw-bold text-muted mb-1"><i class="fa-solid fa-shapes me-1"></i>TEST TYPE:</label>
+                                        <select id="testTypeSelect" class="form-select border-primary shadow-sm fw-bold text-primary">
+                                            <option value="addition">➕ Addition / Subtraction</option>
+                                            <option value="multiplication">✖️ Multiplication</option>
+                                            <option value="division">➗ Division</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <!-- 🔥 NEW: Answer Mode Selection -->
+                                    <div class="col-12 col-md-6">
+                                        <label class="small fw-bold text-muted mb-1"><i class="fa-solid fa-keyboard me-1"></i>ANSWER MODE:</label>
+                                        <select id="testAnswerMode" class="form-select border-success shadow-sm fw-bold text-success">
+                                            <option value="mcq">🔘 Multiple Choice (Options)</option>
+                                            <option value="input">⌨️ Custom Keyboard Input</option>
+                                        </select>
+                                    </div>
                                 </div>
 
                                 <div class="mb-3">
@@ -195,6 +204,7 @@
                                     <div style="max-height: 120px; overflow-y: auto;" id="assignToContainer"></div>
                                 </div>
 
+                                <!-- Dynamic Questions will be injected here -->
                                 <div id="questionsContainer"></div>
                                 
                                 <div class="d-flex flex-column flex-md-row justify-content-between mt-4 gap-2">
@@ -229,6 +239,9 @@
         </div> 
     </div>
 
+    <!-- Modals -->
+
+    <!-- Review Submission Modal -->
     <div class="modal fade" id="reviewModal" tabindex="-1">
         <div class="modal-dialog modal-lg">
             <div class="modal-content border-0 shadow">
@@ -252,6 +265,7 @@
         </div>
     </div>
     
+    <!-- Edit Student PIN Modal -->
     <div class="modal fade" id="editPinModal" tabindex="-1">
         <div class="modal-dialog modal-sm">
             <div class="modal-content border-0 shadow">
@@ -269,6 +283,7 @@
         </div>
     </div>
 
+    <!-- Live Student Test Preview Modal -->
     <div class="modal fade" id="previewModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content border-0 shadow">
@@ -276,12 +291,12 @@
                     <h5 class="modal-title fw-bold"><i class="fa-solid fa-eye me-2"></i>Test Preview</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body bg-light p-4" id="previewModalBody">
-                    </div>
+                <div class="modal-body bg-light p-4" id="previewModalBody"></div>
             </div>
         </div>
     </div>
 
+    <!-- Test Completion Tracker Modal -->
     <div class="modal fade" id="trackerModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content border-0 shadow">
@@ -291,10 +306,8 @@
                 </div>
                 <div class="modal-body bg-light">
                     <h5 id="trackerTestName" class="text-primary fw-bold mb-3 text-center">Test Name</h5>
-                    
                     <h6 class="fw-bold text-success border-bottom pb-2">✅ Finished (<span id="countFinished">0</span>)</h6>
                     <ul id="listFinished" class="list-group mb-4 small fw-bold"></ul>
-                    
                     <h6 class="fw-bold text-danger border-bottom pb-2">⏳ Not Finished (<span id="countNotFinished">0</span>)</h6>
                     <ul id="listNotFinished" class="list-group small text-muted"></ul>
                 </div>
@@ -302,6 +315,7 @@
         </div>
     </div>
 
+    <!-- SMART GENERATOR MODAL -->
     <div class="modal fade" id="generatorModal" tabindex="-1">
         <div class="modal-dialog modal-sm">
             <div class="modal-content border-0 shadow-lg">
@@ -310,7 +324,6 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body bg-body">
-                    
                     <div class="mb-3">
                         <label class="small fw-bold text-muted mb-1">Operator / Type</label>
                         <select id="genOperator" class="form-select fw-bold" onchange="document.getElementById('genRowsContainer').style.display = (this.value === 'addition' || this.value === 'mixed') ? 'block' : 'none';">
@@ -320,12 +333,10 @@
                             <option value="division">Division (÷)</option>
                         </select>
                     </div>
-
                     <div class="mb-3">
                         <label class="small fw-bold text-muted mb-1">Total Questions</label>
                         <input type="number" id="genCount" class="form-control fw-bold" value="10" min="1" max="100">
                     </div>
-                    
                     <div class="mb-3">
                         <label class="small fw-bold text-muted mb-1">Digit Size</label>
                         <select id="genDigits" class="form-select fw-bold">
@@ -335,18 +346,17 @@
                             <option value="mixed">Mixed (1 to 3 Digits)</option>
                         </select>
                     </div>
-                    
                     <div class="mb-3" id="genRowsContainer">
                         <label class="small fw-bold text-muted mb-1">Stack Size (Columns/Rows)</label>
                         <input type="number" id="genRows" class="form-control fw-bold" value="5" min="2" max="20" title="How many numbers in each addition stack">
                     </div>
-                    
                     <button class="btn btn-dark w-100 fw-bold mt-2 py-2 shadow-sm" onclick="generateSmartQuestions()" data-bs-dismiss="modal">Generate Questions</button>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="admin.js"></script>
 </body>

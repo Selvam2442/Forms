@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
-// IMPORTANT: Adjust these paths if your models are located elsewhere
+
+// IMPORTANT: Adjust these paths if your models are located in a different folder structure
 const User = require('../models/User'); 
 const Test = require('../models/Test');
 const Submission = require('../models/Submission');
@@ -25,13 +26,14 @@ router.put('/change-password', async (req, res) => {
 
         if (!admin) return res.status(404).json({ error: "Admin not found." });
 
-        // 🔥 FIX: We must check 'admin.pin' because that is what your database uses!
+        // 🔥 Checking 'admin.pin' based on your specific database structure
         if (admin.pin !== oldPassword) {
             return res.status(400).json({ error: "Incorrect Old Password! Request denied." });
         }
 
-        // 🔥 FIX: Save the new password to the 'pin' field
+        // Save the new password to the 'pin' field (and 'secret' to be universally safe)
         admin.pin = newPassword;
+        admin.secret = newPassword;
         admin.lastPasswordUpdate = new Date();
         await admin.save();
 
@@ -46,7 +48,6 @@ router.put('/change-password', async (req, res) => {
 // ==========================================
 router.get('/students', async (req, res) => {
     try {
-        // Assuming students are saved in the User model with role 'student'
         const students = await User.find({ role: 'student' }).sort({ createdAt: -1 });
         res.status(200).json(students);
     } catch (error) {
@@ -57,13 +58,12 @@ router.get('/students', async (req, res) => {
 router.post('/students', async (req, res) => {
     try {
         const { name, pin } = req.body;
-        // Generate a unique roll number (e.g. STU + random 4 digits)
         const rollNumber = 'STU' + Math.floor(1000 + Math.random() * 9000);
         
         const newStudent = new User({
             name,
             secret: pin,
-            pin: pin, // Depending on your schema setup
+            pin: pin,
             identifier: rollNumber,
             rollNumber: rollNumber,
             role: 'student'
@@ -95,7 +95,7 @@ router.delete('/students/:id', async (req, res) => {
 });
 
 // ==========================================
-// 3. TEST MANAGEMENT (With Math Engine)
+// 3. TEST MANAGEMENT (With Answer Format)
 // ==========================================
 router.get('/tests', async (req, res) => {
     try {
@@ -108,9 +108,8 @@ router.get('/tests', async (req, res) => {
 
 router.post('/tests', async (req, res) => {
     try {
-        const { title, testType, timeLimitMinutes, questions, isActive, availableFrom, dueDate, assignedTo } = req.body;
+        const { title, testType, answerFormat, timeLimitMinutes, questions, isActive, availableFrom, dueDate, assignedTo } = req.body;
         
-        // 🔥 MATHEMATICS ENGINE
         const processedQuestions = questions.map((q, index) => {
             let correctAns = 0;
             if (testType === 'multiplication') {
@@ -126,6 +125,7 @@ router.post('/tests', async (req, res) => {
         const newTest = new Test({ 
             title, 
             testType: testType || 'addition', 
+            answerFormat: answerFormat || 'mcq', // 🔥 Injects Multiple Choice vs Direct Format
             timeLimitMinutes, 
             assignedTo: assignedTo || [], 
             questions: processedQuestions, 
@@ -143,9 +143,8 @@ router.post('/tests', async (req, res) => {
 
 router.put('/tests/:id', async (req, res) => {
     try {
-        const { title, testType, timeLimitMinutes, questions, isActive, availableFrom, dueDate, assignedTo } = req.body;
+        const { title, testType, answerFormat, timeLimitMinutes, questions, isActive, availableFrom, dueDate, assignedTo } = req.body;
         
-        // 🔥 MATHEMATICS ENGINE
         const processedQuestions = questions.map((q, index) => {
             let correctAns = 0;
             if (testType === 'multiplication') {
@@ -159,8 +158,15 @@ router.put('/tests/:id', async (req, res) => {
         });
         
         await Test.findByIdAndUpdate(req.params.id, {
-            title, testType: testType || 'addition', timeLimitMinutes, questions: processedQuestions, isActive, assignedTo: assignedTo || [],
-            availableFrom: availableFrom ? new Date(availableFrom) : null, dueDate: dueDate ? new Date(dueDate) : null
+            title, 
+            testType: testType || 'addition', 
+            answerFormat: answerFormat || 'mcq', // 🔥 Injects Multiple Choice vs Direct Format
+            timeLimitMinutes, 
+            questions: processedQuestions, 
+            isActive, 
+            assignedTo: assignedTo || [],
+            availableFrom: availableFrom ? new Date(availableFrom) : null, 
+            dueDate: dueDate ? new Date(dueDate) : null
         });
         res.status(200).json({ message: "Test updated successfully!" });
     } catch (error) { 
@@ -182,7 +188,6 @@ router.put('/tests/:id/toggle', async (req, res) => {
 router.delete('/tests/:id', async (req, res) => {
     try {
         await Test.findByIdAndDelete(req.params.id);
-        // Cascade delete submissions related to this test
         await Submission.deleteMany({ testId: req.params.id });
         res.status(200).json({ message: "Test and related submissions deleted" });
     } catch (error) {
@@ -227,7 +232,6 @@ router.put('/submissions/:id/approve', async (req, res) => {
 
 router.delete('/submissions/:id/reset', async (req, res) => {
     try {
-        // Wipes the submission completely so the student can take it again
         await Submission.findByIdAndDelete(req.params.id);
         res.status(200).json({ message: "Submission reset successfully" });
     } catch (error) {
@@ -254,13 +258,12 @@ router.get('/leaderboard', async (req, res) => {
             });
         });
 
-        // Sort each test's leaderboard by score (desc) then time (asc)
         for (const test in grouped) {
             grouped[test].sort((a, b) => {
                 if (b.finalScore !== a.finalScore) return b.finalScore - a.finalScore;
-                return a.timeTakenSeconds - b.timeTakenSeconds; // Tie-breaker
+                return a.timeTakenSeconds - b.timeTakenSeconds;
             });
-            grouped[test] = grouped[test].slice(0, 3); // Keep only Top 3
+            grouped[test] = grouped[test].slice(0, 3);
         }
         
         res.status(200).json(grouped);
