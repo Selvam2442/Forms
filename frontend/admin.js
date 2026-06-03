@@ -485,7 +485,10 @@ window.editTest = function(id) {
     document.getElementById('testTitle').value = test.title; 
     document.getElementById('testTime').value = test.timeLimitMinutes;
     document.getElementById('testTypeSelect').value = test.testType || 'addition';
-    document.getElementById('answerFormatSelect').value = test.answerFormat || 'mcq'; // Load Answer Format
+    const formatSelect = document.getElementById('answerFormatSelect');
+if (formatSelect) {
+    formatSelect.value = test.answerFormat || 'mcq';
+}
     
     const setDate = (elId, dateStr) => { 
         if(dateStr) { 

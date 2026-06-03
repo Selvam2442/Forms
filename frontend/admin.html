@@ -254,94 +254,103 @@
                                             <option value="division">➗ Division</option>
                                         </select>
                                     </div>
-
-                                    <!-- 🔥 NEW: Answer Mode Selection -->
                                     <div class="col-12 col-md-6">
                                         <label class="small fw-bold text-muted mb-1"><i
-                                                class="fa-solid fa-keyboard me-1"></i>ANSWER MODE:</label>
-                                        <select id="testAnswerMode"
-                                            class="form-select border-success shadow-sm fw-bold text-success">
-                                            <option value="mcq">🔘 Multiple Choice (Options)</option>
-                                            <option value="input">⌨️ Custom Keyboard Input</option>
+                                                class="fa-solid fa-keyboard me-1"></i>ANSWER FORMAT:</label>
+                                        <select id="answerFormatSelect"
+                                            class="form-select border-dark shadow-sm fw-bold text-dark">
+                                            <option value="mcq">🔘 Multiple Choice Options</option>
+                                            <option value="direct">⌨️ Direct Keyboard Entry</option>
                                         </select>
                                     </div>
                                 </div>
 
-                                <div class="mb-3">
-                                    <input type="text" id="testTitle"
-                                        class="form-control form-control-lg border-0 border-bottom"
-                                        placeholder="Untitled Test Name" required
-                                        style="border-radius: 0; background: transparent;">
+                                <!-- 🔥 NEW: Answer Mode Selection -->
+                                <div class="col-12 col-md-6">
+                                    <label class="small fw-bold text-muted mb-1"><i
+                                            class="fa-solid fa-keyboard me-1"></i>ANSWER MODE:</label>
+                                    <select id="testAnswerMode"
+                                        class="form-select border-success shadow-sm fw-bold text-success">
+                                        <option value="mcq">🔘 Multiple Choice (Options)</option>
+                                        <option value="input">⌨️ Custom Keyboard Input</option>
+                                    </select>
                                 </div>
-
-                                <div class="row g-2 mb-3">
-                                    <div class="col-6 col-md-4">
-                                        <label class="small fw-bold text-muted"><i
-                                                class="fa-solid fa-clock me-1"></i>MINS:</label>
-                                        <input type="number" id="testTime" class="form-control" placeholder="10"
-                                            required>
-                                    </div>
-                                    <div class="col-6 col-md-4">
-                                        <label class="small fw-bold text-muted"><i
-                                                class="fa-solid fa-calendar-check me-1"></i>OPEN:</label>
-                                        <input type="datetime-local" id="testAvailableFrom" class="form-control">
-                                    </div>
-                                    <div class="col-12 col-md-4">
-                                        <label class="small fw-bold text-muted"><i
-                                                class="fa-solid fa-calendar-xmark me-1"></i>DUE:</label>
-                                        <input type="datetime-local" id="testDueDate" class="form-control">
-                                    </div>
-                                </div>
-
-                                <div class="mb-3 border rounded p-2 bg-body-secondary shadow-inner">
-                                    <label class="small fw-bold text-muted mb-2 d-block"><i
-                                            class="fa-solid fa-users me-1"></i>ASSIGN TO:</label>
-                                    <div style="max-height: 120px; overflow-y: auto;" id="assignToContainer"></div>
-                                </div>
-
-                                <!-- Dynamic Questions will be injected here -->
-                                <div id="questionsContainer"></div>
-
-                                <div class="d-flex flex-column flex-md-row justify-content-between mt-4 gap-2">
-                                    <button type="button" id="addQuestionBtn"
-                                        class="btn btn-outline-secondary rounded-pill px-4 fw-bold">
-                                        <i class="fa-solid fa-plus me-1"></i>Add Question
-                                    </button>
-                                    <div class="d-flex gap-2">
-                                        <button type="button" id="cancelEditBtn" class="btn btn-light fw-bold d-none"
-                                            onclick="cancelEditMode()">Cancel</button>
-                                        <button type="submit" onclick="isDraftMode = true" id="btnDraft"
-                                            class="btn btn-light fw-bold border">Save Draft</button>
-                                        <button type="submit" onclick="isDraftMode = false" id="btnPublish"
-                                            class="btn btn-success fw-bold px-4">Publish Live</button>
-                                    </div>
-                                </div>
-                            </form>
                         </div>
-                    </div>
 
-                    <div class="col-12 col-lg-5">
-                        <div class="card shadow-sm border-0 rounded-3 p-3 bg-body h-100">
-                            <h5 class="fw-bold mb-3"><i class="fa-solid fa-layer-group me-2"></i>Managed Tests</h5>
-                            <div class="table-responsive">
-                                <table class="table table-hover align-middle mb-0">
-                                    <thead class="table-secondary">
-                                        <tr>
-                                            <th>Title</th>
-                                            <th>Status</th>
-                                            <th>Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="testTableBody"></tbody>
-                                </table>
+                        <div class="mb-3">
+                            <input type="text" id="testTitle"
+                                class="form-control form-control-lg border-0 border-bottom"
+                                placeholder="Untitled Test Name" required
+                                style="border-radius: 0; background: transparent;">
+                        </div>
+
+                        <div class="row g-2 mb-3">
+                            <div class="col-6 col-md-4">
+                                <label class="small fw-bold text-muted"><i
+                                        class="fa-solid fa-clock me-1"></i>MINS:</label>
+                                <input type="number" id="testTime" class="form-control" placeholder="10" required>
+                            </div>
+                            <div class="col-6 col-md-4">
+                                <label class="small fw-bold text-muted"><i
+                                        class="fa-solid fa-calendar-check me-1"></i>OPEN:</label>
+                                <input type="datetime-local" id="testAvailableFrom" class="form-control">
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <label class="small fw-bold text-muted"><i
+                                        class="fa-solid fa-calendar-xmark me-1"></i>DUE:</label>
+                                <input type="datetime-local" id="testDueDate" class="form-control">
                             </div>
                         </div>
+
+                        <div class="mb-3 border rounded p-2 bg-body-secondary shadow-inner">
+                            <label class="small fw-bold text-muted mb-2 d-block"><i
+                                    class="fa-solid fa-users me-1"></i>ASSIGN TO:</label>
+                            <div style="max-height: 120px; overflow-y: auto;" id="assignToContainer"></div>
+                        </div>
+
+                        <!-- Dynamic Questions will be injected here -->
+                        <div id="questionsContainer"></div>
+
+                        <div class="d-flex flex-column flex-md-row justify-content-between mt-4 gap-2">
+                            <button type="button" id="addQuestionBtn"
+                                class="btn btn-outline-secondary rounded-pill px-4 fw-bold">
+                                <i class="fa-solid fa-plus me-1"></i>Add Question
+                            </button>
+                            <div class="d-flex gap-2">
+                                <button type="button" id="cancelEditBtn" class="btn btn-light fw-bold d-none"
+                                    onclick="cancelEditMode()">Cancel</button>
+                                <button type="submit" onclick="isDraftMode = true" id="btnDraft"
+                                    class="btn btn-light fw-bold border">Save Draft</button>
+                                <button type="submit" onclick="isDraftMode = false" id="btnPublish"
+                                    class="btn btn-success fw-bold px-4">Publish Live</button>
+                            </div>
+                        </div>
+                        </form>
                     </div>
-
                 </div>
-            </div>
 
+                <div class="col-12 col-lg-5">
+                    <div class="card shadow-sm border-0 rounded-3 p-3 bg-body h-100">
+                        <h5 class="fw-bold mb-3"><i class="fa-solid fa-layer-group me-2"></i>Managed Tests</h5>
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-secondary">
+                                    <tr>
+                                        <th>Title</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="testTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
         </div>
+
+    </div>
     </div>
 
     <!-- Modals -->
@@ -439,48 +448,51 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body bg-body">
-    
-    <div class="mb-3">
-        <label class="small fw-bold text-muted mb-1">Operator / Type</label>
-        <select id="genOperator" class="form-select fw-bold" onchange="document.getElementById('genRowsContainer').style.display = (this.value === 'addition' || this.value === 'mixed') ? 'block' : 'none';">
-            <option value="addition">Addition Only (+)</option>
-            <option value="mixed">Mixed (+ and -)</option>
-            <option value="multiplication">Multiplication (×)</option>
-            <option value="division">Division (÷)</option>
-        </select>
-    </div>
 
-    <!-- 🔥 NEW: Answer Format Dropdown inside the Generator -->
-    <div class="mb-3">
-        <label class="small fw-bold text-muted mb-1">Answer Format</label>
-        <select id="genAnswerFormat" class="form-select fw-bold border-dark text-dark">
-            <option value="mcq">🔘 Multiple Choice Options</option>
-            <option value="direct">⌨️ Direct Keyboard Entry</option>
-        </select>
-    </div>
+                    <div class="mb-3">
+                        <label class="small fw-bold text-muted mb-1">Operator / Type</label>
+                        <select id="genOperator" class="form-select fw-bold"
+                            onchange="document.getElementById('genRowsContainer').style.display = (this.value === 'addition' || this.value === 'mixed') ? 'block' : 'none';">
+                            <option value="addition">Addition Only (+)</option>
+                            <option value="mixed">Mixed (+ and -)</option>
+                            <option value="multiplication">Multiplication (×)</option>
+                            <option value="division">Division (÷)</option>
+                        </select>
+                    </div>
 
-    <div class="mb-3">
-        <label class="small fw-bold text-muted mb-1">Total Questions</label>
-        <input type="number" id="genCount" class="form-control fw-bold" value="10" min="1" max="100">
-    </div>
-    
-    <div class="mb-3">
-        <label class="small fw-bold text-muted mb-1">Digit Size</label>
-        <select id="genDigits" class="form-select fw-bold">
-            <option value="1">1-Digit (1 - 9)</option>
-            <option value="2">2-Digit (10 - 99)</option>
-            <option value="3">3-Digit (100 - 999)</option>
-            <option value="mixed">Mixed (1 to 3 Digits)</option>
-        </select>
-    </div>
-    
-    <div class="mb-3" id="genRowsContainer">
-        <label class="small fw-bold text-muted mb-1">Stack Size (Columns/Rows)</label>
-        <input type="number" id="genRows" class="form-control fw-bold" value="5" min="2" max="20" title="How many numbers in each addition stack">
-    </div>
-    
-    <button class="btn btn-dark w-100 fw-bold mt-2 py-2 shadow-sm" onclick="generateSmartQuestions()" data-bs-dismiss="modal">Generate Questions</button>
-</div>
+                    <!-- 🔥 NEW: Answer Format Dropdown inside the Generator -->
+                    <div class="mb-3">
+                        <label class="small fw-bold text-muted mb-1">Answer Format</label>
+                        <select id="genAnswerFormat" class="form-select fw-bold border-dark text-dark">
+                            <option value="mcq">🔘 Multiple Choice Options</option>
+                            <option value="direct">⌨️ Direct Keyboard Entry</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="small fw-bold text-muted mb-1">Total Questions</label>
+                        <input type="number" id="genCount" class="form-control fw-bold" value="10" min="1" max="100">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="small fw-bold text-muted mb-1">Digit Size</label>
+                        <select id="genDigits" class="form-select fw-bold">
+                            <option value="1">1-Digit (1 - 9)</option>
+                            <option value="2">2-Digit (10 - 99)</option>
+                            <option value="3">3-Digit (100 - 999)</option>
+                            <option value="mixed">Mixed (1 to 3 Digits)</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3" id="genRowsContainer">
+                        <label class="small fw-bold text-muted mb-1">Stack Size (Columns/Rows)</label>
+                        <input type="number" id="genRows" class="form-control fw-bold" value="5" min="2" max="20"
+                            title="How many numbers in each addition stack">
+                    </div>
+
+                    <button class="btn btn-dark w-100 fw-bold mt-2 py-2 shadow-sm" onclick="generateSmartQuestions()"
+                        data-bs-dismiss="modal">Generate Questions</button>
+                </div>
             </div>
         </div>
     </div>
