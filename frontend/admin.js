@@ -394,7 +394,6 @@ if (document.getElementById('createTestForm')) {
         const title = document.getElementById('testTitle').value; 
         const timeLimit = document.getElementById('testTime').value;
         const testType = document.getElementById('testTypeSelect').value;
-        // 🔥 Get the Answer Format (MCQ vs Direct)
         const answerFormat = document.getElementById('answerFormatSelect').value;
         const availableFrom = document.getElementById('testAvailableFrom').value ? new Date(document.getElementById('testAvailableFrom').value).toISOString() : null; 
         const dueDate = document.getElementById('testDueDate').value ? new Date(document.getElementById('testDueDate').value).toISOString() : null;
@@ -422,7 +421,7 @@ if (document.getElementById('createTestForm')) {
             const payload = { 
                 title, 
                 testType, 
-                answerFormat, // Inject Answer Format into payload
+                answerFormat, 
                 timeLimitMinutes: parseInt(timeLimit), 
                 questions: questionsArray, 
                 isActive: !isDraftMode, 
@@ -437,12 +436,16 @@ if (document.getElementById('createTestForm')) {
                 res = await fetch(`${BASE_URL}/api/admin/tests`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify(payload) });
             }
             
+            // 🔥 NEW: Proper Error Catching
             if (res.ok) { 
                 alert(editId ? "Test Updated successfully!" : "Test Created successfully!"); 
                 window.location.reload(); 
+            } else {
+                const errData = await res.json();
+                alert("Database Error: " + (errData.error || "Could not save the test. Check your inputs."));
             }
         } catch (e) { 
-            alert("Error saving test."); 
+            alert("Network Error: Could not reach the backend server."); 
         }
     });
 }
