@@ -390,34 +390,51 @@ window.generateSmartQuestions = function() {
 if (document.getElementById('createTestForm')) {
     document.getElementById('createTestForm').addEventListener('submit', async (e) => {
         e.preventDefault(); 
-        const editId = document.getElementById('editingTestId').value; 
-        const title = document.getElementById('testTitle').value; 
-        const timeLimit = document.getElementById('testTime').value;
-        const testType = document.getElementById('testTypeSelect').value;
-        const answerFormat = document.getElementById('answerFormatSelect').value;
-        const availableFrom = document.getElementById('testAvailableFrom').value ? new Date(document.getElementById('testAvailableFrom').value).toISOString() : null; 
-        const dueDate = document.getElementById('testDueDate').value ? new Date(document.getElementById('testDueDate').value).toISOString() : null;
+        console.log("🚀 1. Publish button clicked!");
         
-        const assignedTo = []; 
-        if (!document.getElementById('cb_ALL').checked) { 
-            document.querySelectorAll('.student-cb').forEach(cb => { if(cb.checked) assignedTo.push(cb.value); }); 
-        }
-        
-        const questionsArray = []; 
-        if (testType === 'addition') {
-            document.querySelectorAll('.q-numbers').forEach(i => { 
-                if (i.value.trim()) questionsArray.push({ numbersArray: i.value.split(',').map(n => parseInt(n.trim(), 10)) }); 
-            });
-        } else {
-            const num1s = document.querySelectorAll('.q-num1'); 
-            const num2s = document.querySelectorAll('.q-num2');
-            num1s.forEach((n1, idx) => { 
-                if(n1.value && num2s[idx].value) questionsArray.push({ numbersArray: [parseInt(n1.value), parseInt(num2s[idx].value)] }); 
-            });
-        }
-
         try {
-            let res; 
+            const editId = document.getElementById('editingTestId').value; 
+            const title = document.getElementById('testTitle').value; 
+            const timeLimit = document.getElementById('testTime').value;
+            const testType = document.getElementById('testTypeSelect').value;
+            const answerFormat = document.getElementById('answerFormatSelect')?.value || 'mcq';
+            
+            let availableFrom = document.getElementById('testAvailableFrom').value;
+            availableFrom = availableFrom ? new Date(availableFrom).toISOString() : null; 
+            
+            let dueDate = document.getElementById('testDueDate').value;
+            dueDate = dueDate ? new Date(dueDate).toISOString() : null;
+
+            console.log("✅ 2. Basic inputs captured.");
+
+            const assignedTo = []; 
+            if (!document.getElementById('cb_ALL').checked) { 
+                document.querySelectorAll('.student-cb').forEach(cb => { 
+                    if(cb.checked) assignedTo.push(cb.value); 
+                }); 
+            }
+
+            console.log("✅ 3. Students assigned:", assignedTo.length);
+
+            const questionsArray = []; 
+            if (testType === 'addition') {
+                document.querySelectorAll('.q-numbers').forEach(i => { 
+                    if (i.value.trim()) questionsArray.push({ numbersArray: i.value.split(',').map(n => parseInt(n.trim(), 10)) }); 
+                });
+            } else {
+                const num1s = document.querySelectorAll('.q-num1'); 
+                const num2s = document.querySelectorAll('.q-num2');
+                num1s.forEach((n1, idx) => { 
+                    if(n1.value && num2s[idx].value) questionsArray.push({ numbersArray: [parseInt(n1.value), parseInt(num2s[idx].value)] }); 
+                });
+            }
+
+            console.log("✅ 4. Questions compiled:", questionsArray.length);
+
+            if (questionsArray.length === 0) {
+                return alert("❌ Cannot publish: You must have at least one valid question with numbers in it!");
+            }
+
             const payload = { 
                 title, 
                 testType, 
@@ -429,23 +446,29 @@ if (document.getElementById('createTestForm')) {
                 dueDate, 
                 assignedTo 
             };
-            
+
+            console.log("📤 5. Sending payload to server...", payload);
+
+            let res; 
             if (editId) {
                 res = await fetch(`${BASE_URL}/api/admin/tests/${editId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify(payload) });
             } else {
                 res = await fetch(`${BASE_URL}/api/admin/tests`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify(payload) });
             }
             
-            // 🔥 NEW: Proper Error Catching
+            console.log("📥 6. Server responded with status:", res.status);
+
             if (res.ok) { 
                 alert(editId ? "Test Updated successfully!" : "Test Created successfully!"); 
                 window.location.reload(); 
             } else {
                 const errData = await res.json();
-                alert("Database Error: " + (errData.error || "Could not save the test. Check your inputs."));
+                console.error("❌ Database Error Details:", errData);
+                alert("Database Error: " + (errData.error || "Could not save the test. Check the console."));
             }
-        } catch (e) { 
-            alert("Network Error: Could not reach the backend server."); 
+        } catch (err) { 
+            console.error("🛑 CRITICAL FRONTEND CRASH:", err);
+            alert("A critical error stopped the form. Right-click -> Inspect -> Console to see the red error."); 
         }
     });
 }

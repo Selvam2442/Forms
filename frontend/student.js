@@ -16,7 +16,6 @@ let studentAnswers = {};
 let timerInterval = null;
 let timeTakenSeconds = 0;
 
-// NATIVE AUDIO ENGINE
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
 function playAudioClick() {
@@ -153,7 +152,6 @@ function renderDashboard() {
     }
 }
 
-// THE NEW MULTIPLE-CHOICE EXAM ENGINE
 window.startTest = function(testId) {
     activeTest = globalTests.find(t => t._id === testId);
     if (!activeTest) return;
@@ -174,7 +172,6 @@ window.startTest = function(testId) {
                 let fake = realAns + offset;
                 if (activeTest.testType === 'division') fake = Math.floor(fake);
                 
-                // 🔥 NEW: Only add the fake option if it is 0 or greater
                 if (fake >= 0) {
                     opts.add(fake);
                 }
@@ -226,7 +223,6 @@ window.renderQuestion = function() {
 
     let inputAreaHtml = '';
 
-    // 🔥 Check if the test is Direct Entry or MCQ
     if (activeTest.answerFormat === 'direct') {
         inputAreaHtml = `
             <div class="mb-4">
@@ -246,9 +242,8 @@ window.renderQuestion = function() {
                 <div class="col-2 col-sm-2"><button class="btn btn-light w-100 fw-bold border fs-4 py-2 shadow-sm" onclick="typeDirect('9')">9</button></div>
                 <div class="col-2 col-sm-2"><button class="btn btn-light w-100 fw-bold border fs-4 py-2 shadow-sm" onclick="typeDirect('0')">0</button></div>
                 
-                <div class="col-4"><button class="btn btn-danger w-100 fw-bold border fs-5 py-2 shadow-sm" onclick="clearDirect()">AC</button></div>
-                <div class="col-4"><button class="btn btn-secondary w-100 fw-bold border fs-5 py-2 shadow-sm" onclick="typeDirect('-')">-</button></div>
-                <div class="col-4"><button class="btn btn-warning w-100 fw-bold border fs-5 py-2 shadow-sm" onclick="eraseDirect()"><i class="fa-solid fa-delete-left"></i></button></div>
+                <div class="col-6"><button class="btn btn-danger w-100 fw-bold border fs-5 py-2 shadow-sm" onclick="clearDirect()">AC</button></div>
+                <div class="col-6"><button class="btn btn-warning w-100 fw-bold border fs-5 py-2 shadow-sm" onclick="eraseDirect()"><i class="fa-solid fa-delete-left"></i></button></div>
             </div>
         `;
     } else {
@@ -272,7 +267,6 @@ window.renderQuestion = function() {
         <div class="d-flex gap-2 mt-4">
     `;
 
-    // Force answer lockout logic
     const hasValidAnswer = savedAnswer !== null && savedAnswer !== '' && savedAnswer !== '-';
     const nextDisabled = hasValidAnswer ? '' : 'disabled';
 
@@ -292,7 +286,6 @@ window.renderQuestion = function() {
     document.getElementById('activeTestQuestions').innerHTML = html;
 };
 
-// 🔥 CUSTOM KEYBOARD FUNCTIONS
 window.typeDirect = function(char) {
     playAudioClick();
     const input = document.getElementById('directAnswerInput');
@@ -373,9 +366,6 @@ window.submitTest = async function() {
     }
 };
 
-// ==========================================
-// REVIEW MODAL & RETAKE REQUEST LOGIC
-// ==========================================
 window.viewDetails = function(subId) {
     const sub = globalSubmissions.find(s => s._id === subId); 
     if (!sub) return;
@@ -412,7 +402,6 @@ window.viewDetails = function(subId) {
     else if (percentage >= 50) msg = "Good job! A little more practice and you'll be unstoppable! 💪";
     document.getElementById('cardMessage').innerText = msg;
 
-    // Share Button
     const waBtn = document.getElementById('waShareResultBtn');
     if (waBtn) {
         waBtn.onclick = function() {
@@ -422,7 +411,6 @@ window.viewDetails = function(subId) {
         };
     }
 
-    // 🔥 Request Retake Logic
     const retakeBtn = document.getElementById('requestRetakeBtn');
     if (retakeBtn) {
         retakeBtn.onclick = async function() {
@@ -450,5 +438,4 @@ window.viewDetails = function(subId) {
     new bootstrap.Modal(document.getElementById('reviewModal')).show();
 }
 
-// Initial Boot
 loadDashboard();
