@@ -307,27 +307,42 @@ if (document.getElementById('addQuestionBtn')) {
 
 // 🔥 SMART GENERATOR LOGIC
 window.generateSmartQuestions = function() {
+    // 1. Get all values from the Generator Modal
     const operator = document.getElementById('genOperator').value;
     const count = parseInt(document.getElementById('genCount').value) || 10;
     const digits = document.getElementById('genDigits').value;
     const rows = parseInt(document.getElementById('genRows').value) || 5;
+    const genFormat = document.getElementById('genAnswerFormat').value;
 
+    // 2. Sync the Answer Format to the main form
+    const mainFormatSelect = document.getElementById('answerFormatSelect');
+    if (mainFormatSelect) {
+        mainFormatSelect.value = genFormat;
+    }
+
+    // 3. Sync the Test Type (Operator) to the main form
     const mainTestType = document.getElementById('testTypeSelect');
-    if (operator === 'multiplication') mainTestType.value = 'multiplication';
-    else if (operator === 'division') mainTestType.value = 'division';
-    else mainTestType.value = 'addition';
+    if (operator === 'multiplication') {
+        mainTestType.value = 'multiplication';
+    } else if (operator === 'division') {
+        mainTestType.value = 'division';
+    } else {
+        mainTestType.value = 'addition'; // Covers both 'addition' and 'mixed'
+    }
 
+    // 4. Clear the screen if there's only an empty default card sitting there
     const container = document.getElementById('questionsContainer');
-    if(container.children.length === 1) {
+    if (container.children.length === 1) {
         const inputs = container.children[0].querySelectorAll('input[type="text"], input[type="number"]');
         let isEmpty = true; 
         inputs.forEach(i => { if(i.value) isEmpty = false; });
-        if(isEmpty) container.innerHTML = '';
+        if (isEmpty) container.innerHTML = '';
     }
 
+    // Helper: Generate random numbers based on the digit dropdown
     const getRandomNum = (dStr) => {
         let d = dStr;
-        if(d === 'mixed') d = Math.floor(Math.random() * 3) + 1; 
+        if (d === 'mixed') d = Math.floor(Math.random() * 3) + 1; 
         else d = parseInt(d);
         
         const min = Math.pow(10, d - 1); 
@@ -335,27 +350,34 @@ window.generateSmartQuestions = function() {
         return Math.floor(Math.random() * (max - min + 1)) + min;
     };
 
+    // 5. Loop and build the questions
     for (let i = 0; i < count; i++) {
         let nums = [];
         
         if (operator === 'addition' || operator === 'mixed') {
-            for(let r = 0; r < rows; r++) {
+            for (let r = 0; r < rows; r++) {
                 let num = getRandomNum(digits);
-                if(operator === 'mixed' && r > 0 && Math.random() < 0.3) num = -num; 
+                // If they picked Mixed, 30% chance for subtraction (except row 1)
+                if (operator === 'mixed' && r > 0 && Math.random() < 0.3) {
+                    num = -num; 
+                }
                 nums.push(num);
             }
         } 
         else if (operator === 'multiplication') {
             nums.push(getRandomNum(digits));
+            // Keep the 2nd number smaller if they chose 3 digits to avoid massive results
             nums.push(getRandomNum(digits === '3' ? '2' : digits)); 
         } 
         else if (operator === 'division') {
+            // Trick to ensure perfect division: generate the ANSWER and DIVISOR first, multiply to get DIVIDEND
             const divisor = getRandomNum(digits === '3' ? '2' : digits);
             const answer = getRandomNum(digits);
-            nums.push(divisor * answer); 
-            nums.push(divisor);          
+            nums.push(divisor * answer); // The big number (Dividend)
+            nums.push(divisor);          // The small number (Divisor)
         }
         
+        // Inject the generated numbers into a new card
         addQuestionCard(nums);
     }
 };
