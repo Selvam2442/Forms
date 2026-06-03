@@ -21,7 +21,6 @@
 </head>
 <body class="bg-light">
 
-    <!-- 🔥 Loading Overlay -->
     <div id="globalLoader" class="position-fixed w-100 h-100 flex-column align-items-center justify-content-center bg-body" style="z-index: 9999; top: 0; left: 0; transition: opacity 0.5s ease; display: flex;">
         <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status"></div>
         <h4 class="text-primary fw-bold mb-2">Loading Center Data...</h4>
@@ -31,7 +30,9 @@
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
         <div class="container-fluid px-3">
             <span class="navbar-brand fw-bold fs-5"><i class="fa-solid fa-calculator me-2"></i>Abacus Admin</span>
-            <div><button class="btn btn-danger btn-sm fw-bold px-3" id="logoutBtn"><i class="fa-solid fa-right-from-bracket me-2"></i>Logout</button></div>
+            <div>
+                <button class="btn btn-danger btn-sm fw-bold px-3" id="logoutBtn"><i class="fa-solid fa-right-from-bracket me-2"></i>Logout</button>
+            </div>
         </div>
     </nav>
 
@@ -46,7 +47,6 @@
 
         <div class="tab-content" id="adminTabsContent">
             
-            <!-- TAB 1: DASHBOARD -->
             <div class="tab-pane fade show active" id="dashboard" role="tabpanel">
                 <div class="row g-4">
                     <div class="col-12 col-lg-8">
@@ -58,16 +58,48 @@
                             </div>
                         </div>
                     </div>
+                    
                     <div class="col-12 col-lg-4">
-                        <div class="card shadow-sm border-0 rounded-3 p-3 bg-body h-100">
+                        <div class="card shadow-sm border-0 rounded-3 p-3 bg-body mb-4">
                             <h5 class="fw-bold mb-3 text-warning text-uppercase"><i class="fa-solid fa-trophy me-2"></i>Rankings By Test</h5>
-                            <div id="adminLeaderboardContainer" class="mb-4"></div>
+                            <div id="adminLeaderboardContainer"></div>
                         </div>
+
+                        <div class="card shadow-sm border-0 rounded-3 p-4 bg-body">
+                            <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+                                <h5 class="fw-bold text-danger mb-0"><i class="fa-solid fa-shield-halved me-2"></i>Security</h5>
+                                <small class="text-muted fw-bold badge bg-light border text-dark fs-6" id="lastUpdatedText">
+                                    <i class="fa-solid fa-clock-rotate-left me-1"></i>Checking...
+                                </small>
+                            </div>
+                            
+                            <form id="changePasswordForm">
+                                <div class="row g-3">
+                                    <div class="col-12">
+                                        <label class="small fw-bold text-muted mb-1">Old Password</label>
+                                        <input type="password" id="oldAdminPassword" class="form-control bg-body-secondary border-0" placeholder="Enter Current Password" required>
+                                    </div>
+                                    <div class="col-12 col-md-6">
+                                        <label class="small fw-bold text-muted mb-1">New Password</label>
+                                        <input type="password" id="newAdminPassword" class="form-control bg-body-secondary border-0" placeholder="New Password" required>
+                                    </div>
+                                    <div class="col-12 col-md-6">
+                                        <label class="small fw-bold text-muted mb-1">Confirm New</label>
+                                        <input type="password" id="confirmAdminPassword" class="form-control bg-body-secondary border-0" placeholder="Confirm Password" required>
+                                    </div>
+                                    <div class="col-12 mt-3 text-end">
+                                        <button type="submit" class="btn btn-danger fw-bold w-100 rounded-pill shadow-sm">
+                                            <i class="fa-solid fa-key me-2"></i>Update Password
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+
                     </div>
                 </div>
             </div>
 
-            <!-- TAB 2: STUDENTS -->
             <div class="tab-pane fade" id="students" role="tabpanel">
                 <div class="row g-4">
                     <div class="col-12 col-md-5 col-lg-4">
@@ -95,7 +127,6 @@
                 </div>
             </div>
 
-            <!-- TAB 3: SUBMISSIONS -->
             <div class="tab-pane fade" id="submissions" role="tabpanel">
                 <div class="card shadow-sm border-0 bg-body p-3 mb-4 rounded-3">
                     <div class="row g-2 align-items-center">
@@ -115,9 +146,9 @@
                 <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3 mb-4" id="submissionsContainer"></div>
             </div>
 
-            <!-- TAB 4: TESTS & QUIZ BUILDER -->
             <div class="tab-pane fade" id="tests" role="tabpanel">
                 <div class="row g-4">
+                    
                     <div class="col-12 col-lg-7">
                         <div class="card shadow-sm border-0 rounded-3 p-3 bg-body mb-4">
                             
@@ -141,13 +172,22 @@
                                 </div>
 
                                 <div class="mb-3">
-                                    <input type="text" id="testTitle" class="form-control form-control-lg border-0 border-bottom" placeholder="Untitled Test" required style="border-radius: 0; background: transparent;">
+                                    <input type="text" id="testTitle" class="form-control form-control-lg border-0 border-bottom" placeholder="Untitled Test Name" required style="border-radius: 0; background: transparent;">
                                 </div>
                                 
                                 <div class="row g-2 mb-3">
-                                    <div class="col-6 col-md-4"><label class="small fw-bold text-muted"><i class="fa-solid fa-clock me-1"></i>MINS:</label><input type="number" id="testTime" class="form-control" placeholder="10" required></div>
-                                    <div class="col-6 col-md-4"><label class="small fw-bold text-muted"><i class="fa-solid fa-calendar-check me-1"></i>OPEN:</label><input type="datetime-local" id="testAvailableFrom" class="form-control"></div>
-                                    <div class="col-12 col-md-4"><label class="small fw-bold text-muted"><i class="fa-solid fa-calendar-xmark me-1"></i>DUE:</label><input type="datetime-local" id="testDueDate" class="form-control"></div>
+                                    <div class="col-6 col-md-4">
+                                        <label class="small fw-bold text-muted"><i class="fa-solid fa-clock me-1"></i>MINS:</label>
+                                        <input type="number" id="testTime" class="form-control" placeholder="10" required>
+                                    </div>
+                                    <div class="col-6 col-md-4">
+                                        <label class="small fw-bold text-muted"><i class="fa-solid fa-calendar-check me-1"></i>OPEN:</label>
+                                        <input type="datetime-local" id="testAvailableFrom" class="form-control">
+                                    </div>
+                                    <div class="col-12 col-md-4">
+                                        <label class="small fw-bold text-muted"><i class="fa-solid fa-calendar-xmark me-1"></i>DUE:</label>
+                                        <input type="datetime-local" id="testDueDate" class="form-control">
+                                    </div>
                                 </div>
                                 
                                 <div class="mb-3 border rounded p-2 bg-body-secondary shadow-inner">
@@ -158,7 +198,9 @@
                                 <div id="questionsContainer"></div>
                                 
                                 <div class="d-flex flex-column flex-md-row justify-content-between mt-4 gap-2">
-                                    <button type="button" id="addQuestionBtn" class="btn btn-outline-secondary rounded-pill px-4 fw-bold"><i class="fa-solid fa-plus me-1"></i>Add Question</button>
+                                    <button type="button" id="addQuestionBtn" class="btn btn-outline-secondary rounded-pill px-4 fw-bold">
+                                        <i class="fa-solid fa-plus me-1"></i>Add Question
+                                    </button>
                                     <div class="d-flex gap-2">
                                         <button type="button" id="cancelEditBtn" class="btn btn-light fw-bold d-none" onclick="cancelEditMode()">Cancel</button>
                                         <button type="submit" onclick="isDraftMode = true" id="btnDraft" class="btn btn-light fw-bold border">Save Draft</button>
@@ -180,13 +222,13 @@
                             </div>
                         </div>
                     </div>
+
                 </div>
             </div>
 
         </div> 
     </div>
 
-    <!-- Review Modal -->
     <div class="modal fade" id="reviewModal" tabindex="-1">
         <div class="modal-dialog modal-lg">
             <div class="modal-content border-0 shadow">
@@ -200,7 +242,7 @@
                     <div class="table-responsive bg-body rounded-3 p-2 shadow-sm">
                         <table class="table table-borderless table-hover align-middle text-center mb-0">
                             <thead class="border-bottom">
-                                <tr class="text-muted small text-uppercase"><th>#</th><th>Stack</th><th>Student</th><th>Correct</th><th>Result</th></tr>
+                                <tr class="text-muted small text-uppercase"><th>#</th><th>Stack / Equation</th><th>Student</th><th>Correct</th><th>Result</th></tr>
                             </thead>
                             <tbody id="reviewTableBody"></tbody>
                         </table>
@@ -210,7 +252,6 @@
         </div>
     </div>
     
-    <!-- Edit PIN Modal -->
     <div class="modal fade" id="editPinModal" tabindex="-1">
         <div class="modal-dialog modal-sm">
             <div class="modal-content border-0 shadow">
@@ -228,7 +269,6 @@
         </div>
     </div>
 
-    <!-- Live Preview Modal -->
     <div class="modal fade" id="previewModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content border-0 shadow">
@@ -237,54 +277,11 @@
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body bg-light p-4" id="previewModalBody">
-                    <!-- Dynamic Content -->
-                </div>
+                    </div>
             </div>
         </div>
     </div>
 
-    <!-- 🔥 SMART GENERATOR MODAL -->
-    <div class="modal fade" id="generatorModal" tabindex="-1">
-        <div class="modal-dialog modal-sm">
-            <div class="modal-content border-0 shadow-lg">
-                <div class="modal-header bg-warning border-0">
-                    <h5 class="modal-title fw-bold text-dark"><i class="fa-solid fa-wand-magic-sparkles me-2"></i>Test Generator</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body bg-body">
-                    <div class="mb-3">
-                        <label class="small fw-bold text-muted mb-1">Operator / Type</label>
-                        <select id="genOperator" class="form-select fw-bold" onchange="document.getElementById('genRowsContainer').style.display = (this.value === 'addition' || this.value === 'mixed') ? 'block' : 'none';">
-                            <option value="addition">Addition Only (+)</option>
-                            <option value="mixed">Mixed (+ and -)</option>
-                            <option value="multiplication">Multiplication (×)</option>
-                            <option value="division">Division (÷)</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="small fw-bold text-muted mb-1">Total Questions</label>
-                        <input type="number" id="genCount" class="form-control fw-bold" value="10" min="1" max="100">
-                    </div>
-                    <div class="mb-3">
-                        <label class="small fw-bold text-muted mb-1">Digit Size</label>
-                        <select id="genDigits" class="form-select fw-bold">
-                            <option value="1">1-Digit (1 - 9)</option>
-                            <option value="2">2-Digit (10 - 99)</option>
-                            <option value="3">3-Digit (100 - 999)</option>
-                            <option value="mixed">Mixed (1 to 3 Digits)</option>
-                        </select>
-                    </div>
-                    <div class="mb-3" id="genRowsContainer">
-                        <label class="small fw-bold text-muted mb-1">Stack Size (Columns/Rows)</label>
-                        <input type="number" id="genRows" class="form-control fw-bold" value="5" min="2" max="20">
-                    </div>
-                    <button class="btn btn-dark w-100 fw-bold mt-2 py-2 shadow-sm" onclick="generateSmartQuestions()" data-bs-dismiss="modal">Generate Questions</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 🔥 COMPLETION TRACKER MODAL -->
     <div class="modal fade" id="trackerModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content border-0 shadow">
@@ -296,10 +293,55 @@
                     <h5 id="trackerTestName" class="text-primary fw-bold mb-3 text-center">Test Name</h5>
                     
                     <h6 class="fw-bold text-success border-bottom pb-2">✅ Finished (<span id="countFinished">0</span>)</h6>
-                    <ul id="listFinished" class="list-group mb-4 small fw-bold shadow-sm"></ul>
+                    <ul id="listFinished" class="list-group mb-4 small fw-bold"></ul>
                     
                     <h6 class="fw-bold text-danger border-bottom pb-2">⏳ Not Finished (<span id="countNotFinished">0</span>)</h6>
-                    <ul id="listNotFinished" class="list-group small text-muted shadow-sm"></ul>
+                    <ul id="listNotFinished" class="list-group small text-muted"></ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="generatorModal" tabindex="-1">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-warning border-0">
+                    <h5 class="modal-title fw-bold text-dark"><i class="fa-solid fa-wand-magic-sparkles me-2"></i>Test Generator</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body bg-body">
+                    
+                    <div class="mb-3">
+                        <label class="small fw-bold text-muted mb-1">Operator / Type</label>
+                        <select id="genOperator" class="form-select fw-bold" onchange="document.getElementById('genRowsContainer').style.display = (this.value === 'addition' || this.value === 'mixed') ? 'block' : 'none';">
+                            <option value="addition">Addition Only (+)</option>
+                            <option value="mixed">Mixed (+ and -)</option>
+                            <option value="multiplication">Multiplication (×)</option>
+                            <option value="division">Division (÷)</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="small fw-bold text-muted mb-1">Total Questions</label>
+                        <input type="number" id="genCount" class="form-control fw-bold" value="10" min="1" max="100">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="small fw-bold text-muted mb-1">Digit Size</label>
+                        <select id="genDigits" class="form-select fw-bold">
+                            <option value="1">1-Digit (1 - 9)</option>
+                            <option value="2">2-Digit (10 - 99)</option>
+                            <option value="3">3-Digit (100 - 999)</option>
+                            <option value="mixed">Mixed (1 to 3 Digits)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3" id="genRowsContainer">
+                        <label class="small fw-bold text-muted mb-1">Stack Size (Columns/Rows)</label>
+                        <input type="number" id="genRows" class="form-control fw-bold" value="5" min="2" max="20" title="How many numbers in each addition stack">
+                    </div>
+                    
+                    <button class="btn btn-dark w-100 fw-bold mt-2 py-2 shadow-sm" onclick="generateSmartQuestions()" data-bs-dismiss="modal">Generate Questions</button>
                 </div>
             </div>
         </div>
