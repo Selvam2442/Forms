@@ -1040,5 +1040,21 @@ async function initializeAdminDashboard() {
         } 
     }
 }
+// Accessibility Fix: Remove focus from modal elements before hiding
+const reviewModalEl = document.getElementById('reviewModal');
+if (reviewModalEl) {
+    reviewModalEl.addEventListener('hide.bs.modal', function () {
+        // Shift focus back to the main body to prevent aria-hidden conflicts
+        document.body.focus();
+    });
+}
+
+// If you see the warning on other modals, you can apply it to them as well:
+const previewModalEl = document.getElementById('previewModal');
+if (previewModalEl) {
+    previewModalEl.addEventListener('hide.bs.modal', function () {
+        document.body.focus();
+    });
+}
 
 initializeAdminDashboard();
