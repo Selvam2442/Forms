@@ -25,11 +25,13 @@ router.put('/change-password', async (req, res) => {
 
         if (!admin) return res.status(404).json({ error: "Admin not found." });
 
-        if (admin.secret !== oldPassword) {
+        // 🔥 FIX: We must check 'admin.pin' because that is what your database uses!
+        if (admin.pin !== oldPassword) {
             return res.status(400).json({ error: "Incorrect Old Password! Request denied." });
         }
 
-        admin.secret = newPassword;
+        // 🔥 FIX: Save the new password to the 'pin' field
+        admin.pin = newPassword;
         admin.lastPasswordUpdate = new Date();
         await admin.save();
 
